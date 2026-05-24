@@ -1,0 +1,11 @@
+// 1. Importamos tus variables (sobrescribe las de Bootstrap)
+@import 'variables';
+
+// 2. Importamos el núcleo de Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+// 3. (Opcional) Aquí puedes añadir estilos globales si los necesitas
+body {
+    background-color: $background;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}

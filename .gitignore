@@ -1,0 +1,32 @@
+# --- Laravel (PHP) ---
+/vendor
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# --- React / Node (JS) ---
+/node_modules
+/public/hot
+/public/storage
+/dist
+*.log
+.eslintcache
+.stylelintcache
+
+# --- Sistema / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.phpunit.result.cache
+*.sqlite
+*.sqlite-journal
+
+# --- Archivos de compilación de Laravel Vite/Mix ---
+/public/build
+/public/mix-manifest.json
