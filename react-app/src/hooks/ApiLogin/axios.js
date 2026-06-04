@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
     // AJUSTE IMPORTANTE: Pon la URL de tu API de Laravel
-    baseURL: 'http://localhost:8080/api', 
+    baseURL: '/api', 
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'

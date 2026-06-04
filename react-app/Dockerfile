@@ -1,14 +1,18 @@
-FROM node:20-alpine
+# Usa una versión estable y reciente
+FROM node:22-alpine
 
+# Directorio de trabajo
 WORKDIR /app
 
-# Instalamos dependencias primero para aprovechar la caché de Docker
+# Instalar dependencias primero (mejor caché)
 COPY package*.json ./
 RUN npm install
 
+# Copiar el resto del código
 COPY . .
 
+# Exponer el puerto de Vite
 EXPOSE 5173
 
-# El flag --host es CRUCIAL para que Docker pueda exponer el puerto
+# Comando para arrancar Vite (necesario para Docker)
 CMD ["npm", "run", "dev", "--", "--host"]

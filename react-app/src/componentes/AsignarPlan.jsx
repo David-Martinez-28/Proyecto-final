@@ -1,209 +1,145 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Table, Spinner, Badge, Alert } from 'react-bootstrap';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import api from '../hooks/ApiLogin/axios';
+
+// IMPORTAMOS TUS NUEVOS HOOKS DE API
+import useApiGet from '../hooks/ApiDietista/useApiGet';
+import useApiPost from '../hooks/ApiDietista/useApiPost';
+import useApiDelete from '../hooks/ApiDietista/useApiDelete';
 
 const AsignarPlan = () => {
     const { id } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
-    
-    // Recuperamos los datos básicos del paciente pasados por la ruta
+
     const pacienteBase = location.state?.paciente;
 
-    // --- ESTADOS ---
-    const [comidasCatalogo, setComidasCatalogo] = useState([]); // Todos los platos disponibles (izquierda)
-    const [filtro, setFiltro] = useState(''); // Buscador del catálogo
-    
-    // Estados para la gestión de la cuadrícula y el historial
-    const [planActual, setPlanActual] = useState([]); // Platos activos (hoy)
-    const [historialDietas, setHistorialDietas] = useState({}); // Platos antiguos agrupados por fechas
-    const [periodoSeleccionado, setPeriodoSeleccionado] = useState('actual'); // Qué estamos viendo ('actual' o rango de fechas)
+    // --- ESTADOS DE DATOS ---
+    const [comidasCatalogo, setComidasCatalogo] = useState([]);
+    const [planActual, setPlanActual] = useState([]);
+    const [historialDietas, setHistorialDietas] = useState({});
 
+    // --- ESTADOS DE UI ---
+    const [periodoSeleccionado, setPeriodoSeleccionado] = useState('actual');
+    const [platoSeleccionado, setPlatoSeleccionado] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState(null);
 
-    // Estructura fija de la cuadrícula
-    // IMPORTANTE: Asegúrate de que coincidan en mayúsculas/minúsculas con tu base de datos
     const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     const momentos = ["desayuno", "almuerzo", "comida", "merienda", "cena"];
 
-    // --- CARGA DE DATOS ---
+    // --- FUNCIÓN CENTRAL DE CARGA ---
     const cargarDatos = async () => {
-        try {
-            setCargando(true);
-            setError(null);
+    try {
+        setCargando(true);
+        setError(null);
 
-            // 1. Cargamos el catálogo de platos (panel izquierdo)
-            const resComidas = await api.get('/comidas');
-            const dataComidas = Array.isArray(resComidas.data) ? resComidas.data : resComidas.data.data;
-            setComidasCatalogo(dataComidas || []);
+        // 1. Usamos tu hook GET para traer todas las comidas
+        const dataComidas = await useApiGet('/comidas');
+        setComidasCatalogo(dataComidas || []);
+        console.log("Comidas recibidas del catálogo:", dataComidas);
+        
+        // 2. Usamos tu hook GET para traer al paciente específico
+        const resPaciente = await useApiGet(`/pacientes/${id}`);
+        const todasLasComidasPivot = resPaciente?.comidas || [];
+        console.log("Datos recibidos del paciente:", todasLasComidasPivot);
+        
+        // 3. Procesamos los datos
+        // CORRECCIÓN AQUÍ: Filtramos para excluir las archivadas del plan actual editable
+        setPlanActual(todasLasComidasPivot.filter(c => c.pivot.estado !== 'archivada'));
+        
+        const archivadas = todasLasComidasPivot.filter(c => c.pivot.estado === 'archivada');
+        const agrupadasPorFecha = archivadas.reduce((grupos, comida) => {
+            const rango = `Cerrada el ${comida.pivot.fecha_fin || 'fecha desconocida'}`;
+            if (!grupos[rango]) grupos[rango] = [];
+            grupos[rango].push(comida);
+            return grupos;
+        }, {});
 
-            // 2. Cargamos todos los platos del paciente (incluyendo historial)
-            const resPaciente = await api.get(`/pacientes/${id}`);
-            const todasLasComidasPivot = resPaciente.data.data?.comidas || [];
+        setHistorialDietas(agrupadasPorFecha);
+    } catch (err) {
+        setError("No se pudieron cargar los datos.");
+    } finally {
+        setCargando(false);
+    }
+};
 
-            // 3. Separamos los platos ACTIVOS
-            const activas = todasLasComidasPivot.filter(c => c.pivot.estado === 'activa' || !c.pivot.estado);
-            setPlanActual(activas);
+    useEffect(() => { cargarDatos(); }, [id]);
 
-            // 4. Separamos los ARCHIVADOS y los agrupamos por su rango de fechas
-            const archivadas = todasLasComidasPivot.filter(c => c.pivot.estado === 'archivada');
-            const agrupadasPorFecha = archivadas.reduce((grupos, comida) => {
-                // Creamos una clave única por rango de fechas (ej: "Cerrada el 2026-05-15")
-                const rango = `Cerrada el ${comida.pivot.fecha_fin || 'fecha desconocida'}`;
-                if (!grupos[rango]) grupos[rango] = [];
-                grupos[rango].push(comida);
-                return grupos;
-            }, {});
-
-            setHistorialDietas(agrupadasPorFecha);
-
-        } catch (err) {
-            console.error("Error inicializando datos:", err);
-            setError("No se pudieron cargar los datos del plan. Verifica la conexión o la base de datos.");
-        } finally {
-            setCargando(false);
-        }
-    };
-
-    useEffect(() => {
-        cargarDatos();
-    }, [id]);
-
-    // --- LÓGICA DE FILTRADO (Catálogo Izquierdo) ---
-    const comidasFiltradas = comidasCatalogo.filter(c => {
-        const busqueda = filtro.toLowerCase();
-        const coincideNombre = c.nombre.toLowerCase().includes(busqueda);
-        const coincideIngrediente = c.ingredientes && c.ingredientes.some(ing => 
-            ing.nombre.toLowerCase().includes(busqueda)
-        );
-        return coincideNombre || coincideIngrediente;
-    });
-
-    // --- LÓGICA DE SEGURIDAD: ¿Es editable la vista actual? ---
-    // Solo podemos editar (arrastrar/borrar) si estamos viendo el 'Plan Actual'
     const esEditable = periodoSeleccionado === 'actual';
 
-    // --- EVENTOS DRAG & DROP (Solo activos si esEditable) ---
-    const handleDragStart = (e, comidaId) => {
+    // --- LÓGICA DE ASIGNACIÓN (Click y Drag&Drop) ---
+    const Asignar = async (diaSemanaIndex, momentoDia, comidaId) => {
         if (!esEditable) return;
-        e.dataTransfer.setData('comida_id', comidaId);
-    };
-
-    const handleDrop = async (e, diaSemanaIndex, momentoDia) => {
-        e.preventDefault();
-        if (!esEditable) return; // Bloqueo de seguridad
-
-        const comidaId = e.dataTransfer.getData('comida_id');
-        if (!comidaId) return;
-
         try {
             setEnviando(true);
-            // Llamada original para asignar
-            await api.post(`/pacientes/${id}/asignar-comida`, {
+            // Usamos tu hook POST
+            await useApiPost(`/pacientes/${id}/asignar-comida`, {
                 comida_id: comidaId,
                 dia_semana: diaSemanaIndex,
                 momento: momentoDia
-                // Nota: Laravel asignará 'activa' por defecto en el controlador
             });
-            await cargarDatos(); // Recargamos para ver el cambio
+            await cargarDatos(); // Recargar la tabla
+            setPlatoSeleccionado(null); // Resetea selección
         } catch (error) {
-            console.error("Error asignando comida:", error);
-            alert("Hubo un error al asignar el plato. Verifica la consola.");
+            alert("Error al asignar el plato.");
         } finally {
             setEnviando(false);
         }
     };
 
-    const handleDragOver = (e) => {
-        if (!esEditable) return;
+    // Funciones de Drag & Drop para escritorio
+    const DragStart = (e, comidaId) => { if (esEditable) e.dataTransfer.setData('comida_id', comidaId); };
+    const Drop = (e, dia, mom) => {
         e.preventDefault();
+        const id = e.dataTransfer.getData('comida_id');
+        if (id) Asignar(dia, mom, id);
     };
 
-    // --- LÓGICA: Eliminar plato (Solo activa si esEditable) ---
-    const handleEliminarPlato = async (diaSemanaIndex, momentoDia) => {
-        if (!esEditable || !window.confirm("¿Seguro que quieres quitar este plato del plan actual?")) return;
-        
+    // --- ELIMINAR Y ARCHIVAR ---
+    const EliminarPlato = async (diaSemanaIndex, momentoDia) => {
+        if (!esEditable || !window.confirm("¿Quitar plato?")) return;
         try {
             setEnviando(true);
-            await api.delete(`/pacientes/${id}/quitar-comida`, {
-                data: { dia_semana: diaSemanaIndex, momento: momentoDia }
+            // Usamos tu hook DELETE
+            await useApiDelete(`/pacientes/${id}/quitar-comida`, {
+                dia_semana: diaSemanaIndex,
+                momento: momentoDia
             });
             await cargarDatos();
-        } catch (error) {
-            console.error("Error eliminando comida:", error);
-            alert("Hubo un error al quitar el plato.");
-        } finally {
-            setEnviando(false);
-        }
+        } finally { setEnviando(false); }
     };
 
-    // --- LÓGICA: Archivar Plan Completo ---
-    const handleArchivarDieta = async () => {
-        if (planActual.length === 0) return alert("No hay platos activos para archivar.");
-        if (!window.confirm("¿Seguro que quieres archivar esta dieta completa? La cuadrícula se vaciará para empezar una nueva, pero podrás consultar esta dieta siempre en el desplegable de historial.")) return;
-        
+    const ArchivarDieta = async () => {
+        if (!window.confirm("¿Archivar dieta completa?")) return;
         try {
             setEnviando(true);
-            // Llamada al nuevo endpoint de Laravel
-            await api.post(`/pacientes/${id}/archivar-plan`);
-            await cargarDatos(); // Recargamos todo
-            setPeriodoSeleccionado('actual'); // Volvemos a la vista editable
-            alert("Dieta archivada con éxito.");
-        } catch (error) {
-            console.error("Error archivando el plan:", error);
-            alert("Hubo un error interno al archivar la dieta. Verifica Laravel.");
-        } finally {
-            setEnviando(false);
-        }
+            // Usamos tu hook POST para acciones sin body
+            await useApiPost(`/pacientes/${id}/archivar-plan`);
+            await cargarDatos();
+        } finally { setEnviando(false); }
     };
 
-    // --- BUSCADOR DE PLATOS PARA LA CUADRÍCULA (Dinámico) ---
     const obtenerPlatoCelda = (idxDia, momento) => {
-        // Si vemos el plan actual, buscamos en el estado 'planActual'
-        if (periodoSeleccionado === 'actual') {
-            return planActual.find(plato => 
-                Number(plato.pivot.dia_semana) === idxDia && 
-                plato.pivot.momento === momento
-            );
-        }
-        
-        // Si vemos el historial, buscamos en el bloque seleccionado dentro de 'historialDietas'
-        const dietaPasada = historialDietas[periodoSeleccionado];
-        if (!dietaPasada) return null;
-        return dietaPasada.find(plato => 
-            Number(plato.pivot.dia_semana) === idxDia && 
-            plato.pivot.momento === momento
-        );
+        const fuente = periodoSeleccionado === 'actual' ? planActual : (historialDietas[periodoSeleccionado] || []);
+        return fuente.find(p => Number(p.pivot.dia_semana) === idxDia && p.pivot.momento === momento);
     };
 
-    // --- RENDER ---
-    if (cargando) {
-        return (
-            <Container className="d-flex justify-content-center align-items-center vh-100">
-                <Spinner animation="border" variant="success" />
-                <h5 className="ms-3 text-muted">Cargando plan nutricional...</h5>
-            </Container>
-        );
-    }
+    // --- RENDERIZADO ---
+    if (cargando) return <Container className="d-flex justify-content-center p-5"><Spinner animation="border" variant="success" /></Container>;
 
-    if (error) {
-        return (
-            <Container className="py-5">
-                <Alert variant="danger" className="text-center">
-                    <Alert.Heading>¡Ups! Algo salió mal</Alert.Heading>
-                    <p>{error}</p>
-                    <Button variant="outline-danger" onClick={cargarDatos}>Reintentar carga</Button>
-                </Alert>
-            </Container>
-        );
-    }
+    if (error) return <Container className="p-5"><Alert variant="danger">{error}</Alert></Container>;
 
     return (
         <Container className="py-5" fluid style={{ maxWidth: '1600px' }}>
-            {/* CABECERA UNIFICADA */}
+            {/* Aviso de selección para móviles */}
+            {platoSeleccionado && (
+                <Alert variant="primary" className="sticky-top shadow-sm" onClose={() => setPlatoSeleccionado(null)} dismissible>
+                    Has seleccionado <strong>{platoSeleccionado.nombre}</strong>. Toca una casilla en la tabla para asignarlo.
+                </Alert>
+            )}
+
             <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
                 <div>
                     <Button variant="link" className="text-decoration-none text-secondary p-0 mb-2 fw-bold" onClick={() => navigate(-1)}>
@@ -213,164 +149,115 @@ const AsignarPlan = () => {
                         Calendario de <span className="text-success">{pacienteBase?.user?.name || `Paciente #${id}`}</span>
                     </h2>
                 </div>
-                
+
                 <div className="d-flex gap-3 align-items-center bg-white p-3 rounded-4 shadow-sm border">
-                    {/* SELECTOR DE HISTORIAL */}
                     <div className="d-flex align-items-center gap-2">
                         <span className="fw-bold text-secondary small text-uppercase">Visualizar:</span>
-                        <Form.Select 
-                            value={periodoSeleccionado} 
+                        <Form.Select
+                            value={periodoSeleccionado}
                             onChange={(e) => setPeriodoSeleccionado(e.target.value)}
                             className={`shadow-sm fw-bold border-2 ${esEditable ? 'border-success text-success' : 'border-secondary text-secondary'}`}
                             style={{ width: 'auto', minWidth: '300px' }}
                         >
                             <option value="actual">🟢 Plan Actual (Editable)</option>
-                            {Object.keys(historialDietas).map((rangoFecha) => (
-                                <option key={rangoFecha} value={rangoFecha}>
-                                    📦 Histórico: {rangoFecha}
-                                </option>
-                            ))}
+                            {Object.keys(historialDietas).map(r => <option key={r} value={r}>📁 Histórico: {r}</option>)}
                         </Form.Select>
                     </div>
 
-                    {/* BOTÓN MÁGICO DE ARCHIVAR (Solo visible si estamos en 'actual') */}
                     {esEditable && (
-                        <Button 
-                            variant="warning" 
-                            className="fw-bold rounded-pill px-4 shadow-sm" 
-                            onClick={handleArchivarDieta} 
+                        <Button
+                            variant="warning"
+                            className="fw-bold rounded-pill px-4 shadow-sm"
+                            onClick={ArchivarDieta}
                             disabled={enviando || planActual.length === 0}
                         >
-                            {enviando ? <Spinner size="sm" /> : '📦 Archivar y Limpiar Cuadrícula'}
+                            {enviando ? <Spinner size="sm" /> : '📦 Archivar Plan'}
                         </Button>
                     )}
                 </div>
             </div>
 
             <Row className="g-4">
-                {/* PANEL IZQUIERDO: Catálogo de Platos */}
-                {/* Se difumina (opacity-50) si estamos viendo el historial */}
+                {/* PANEL IZQUIERDO: Catálogo */}
                 <Col lg={3}>
                     <Card className={`border-0 shadow-sm rounded-4 position-sticky ${!esEditable ? 'opacity-50' : ''}`} style={{ top: '30px', maxHeight: '85vh' }}>
                         <Card.Header className="bg-success text-white rounded-top-4 py-3 border-0">
                             <h6 className="mb-0 fw-bold fs-5">🥗 Catálogo Maestro</h6>
                         </Card.Header>
                         <Card.Body className="p-3 d-flex flex-column h-100">
-                            <Form.Control 
-                                type="text" 
-                                placeholder={esEditable ? "Buscar plato o ingrediente..." : "Habilita 'Plan Actual' para buscar"}
-                                value={filtro}
-                                onChange={(e) => setFiltro(e.target.value)}
-                                className="mb-3 rounded-pill bg-light border-0 shadow-sm px-4"
-                                disabled={!esEditable}
-                            />
-                            
                             <div className="flex-grow-1 overflow-auto pe-2" style={{ maxHeight: '600px' }}>
-                                {comidasFiltradas.length === 0 ? (
-                                    <p className="text-muted text-center mt-4 small">No hay platos disponibles.</p>
-                                ) : (
-                                    comidasFiltradas.map(comida => (
-                                        <div 
-                                            key={comida.id}
-                                            draggable={esEditable}
-                                            onDragStart={(e) => handleDragStart(e, comida.id)}
-                                            className="p-3 mb-2 bg-white border rounded-3 shadow-sm"
-                                            style={{ 
-                                                cursor: esEditable ? 'grab' : 'not-allowed', 
-                                                transition: 'transform 0.2s',
-                                                borderLeft: esEditable ? '4px solid #198754' : '4px solid #6c757d'
-                                            }}
-                                            onDragEnd={(e) => e.target.style.opacity = '1'}
-                                        >
-                                            <div className="d-flex justify-content-between align-items-start">
-                                                <span className="fw-bold text-dark lh-sm small">{comida.nombre}</span>
-                                                <Badge bg="success" pill style={{ fontSize: '0.65rem' }}>{comida.calorias} kcal</Badge>
-                                            </div>
-                                            {esEditable && (
-                                                <div className="mt-1">
-                                                    <small className="text-success" style={{ fontSize: '0.7rem' }}>
-                                                        ☰ Arrástrame a la tabla
-                                                    </small>
-                                                </div>
-                                            )}
+                                {comidasCatalogo.map(comida => (
+                                    <div
+                                        key={comida.id}
+                                        onClick={() => esEditable && setPlatoSeleccionado(comida)}
+                                        draggable={esEditable}
+                                        onDragStart={(e) => DragStart(e, comida.id)}
+                                        className={`p-3 mb-2 bg-white border rounded-3 shadow-sm ${platoSeleccionado?.id === comida.id ? 'border-primary bg-primary bg-opacity-10' : ''}`}
+                                        style={{
+                                            cursor: esEditable ? 'grab' : 'not-allowed',
+                                            transition: 'transform 0.2s',
+                                            borderLeft: esEditable
+                                                ? (platoSeleccionado?.id === comida.id ? '4px solid #0d6efd' : '4px solid #198754')
+                                                : '4px solid #6c757d'
+                                        }}
+                                    >
+                                        <div className="d-flex justify-content-between align-items-start">
+                                            <span className="fw-bold text-dark lh-sm small">{comida.nombre}</span>
                                         </div>
-                                    ))
-                                )}
+                                    </div>
+                                ))}
                             </div>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                {/* PANEL DERECHO: Cuadrícula Interactiva/Histórica */}
+                {/* PANEL DERECHO: Tabla */}
                 <Col lg={9}>
                     <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
                         <Card.Body className="p-0">
-                            {/* Banner de aviso si estamos viendo el pasado */}
                             {!esEditable && (
                                 <div className="bg-secondary text-white text-center py-2 fw-bold w-100">
                                     ⚠️ Estás visualizando un PLAN HISTÓRICO archivado (Modo lectura).
                                 </div>
                             )}
-                            
                             <Table responsive bordered className="mb-0 text-center align-middle" style={{ tableLayout: 'fixed' }}>
                                 <thead className="bg-light border-bottom">
                                     <tr>
                                         <th className="bg-light py-3" style={{ width: '120px' }}>⏰ Turno</th>
-                                        {diasSemana.map(dia => (
-                                            <th key={dia} className="bg-light py-3 text-secondary fw-bold">{dia}</th>
-                                        ))}
+                                        {diasSemana.map(d => <th key={d} className="bg-light py-3 text-secondary fw-bold">{d}</th>)}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {momentos.map(momento => (
                                         <tr key={momento}>
-                                            <td className="text-capitalize fw-bold text-secondary bg-light small">
-                                                {momento}
-                                            </td>
-                                            
-                                            {diasSemana.map((dia, idxDia) => {
-                                                const plato = obtenerPlatoCelda(idxDia, momento);
-                                                
+                                            <td className="text-capitalize fw-bold text-secondary bg-light small">{momento}</td>
+                                            {diasSemana.map((_, i) => {
+                                                const plato = obtenerPlatoCelda(i, momento);
                                                 return (
-                                                    <td 
-                                                        key={`${momento}-${idxDia}`} 
-                                                        className="p-2 position-relative" 
-                                                        style={{ height: '110px' }}
-                                                        // Solo activamos los eventos de Drop si es editable
-                                                        onDragOver={esEditable ? handleDragOver : undefined}
-                                                        onDrop={esEditable ? (e) => handleDrop(e, idxDia, momento) : undefined}
+                                                    <td
+                                                        key={i}
+                                                        style={{ height: '110px', cursor: (esEditable && platoSeleccionado) ? 'cell' : 'default' }}
+                                                        onDragOver={esEditable ? (e) => e.preventDefault() : undefined}
+                                                        onDrop={esEditable ? (e) => Drop(e, i, momento) : undefined}
+                                                        onClick={() => { if (esEditable && platoSeleccionado) Asignar(i, momento, platoSeleccionado.id); }}
                                                     >
                                                         {plato ? (
-                                                            // Estilo dinámico: Verde si es actual, gris si es histórico
-                                                            <div className={`h-100 position-relative d-flex flex-column justify-content-center align-items-center border rounded p-2 shadow-sm ${
-                                                                esEditable 
-                                                                ? 'bg-success bg-opacity-10 border-success' 
-                                                                : 'bg-secondary bg-opacity-10 border-secondary'
-                                                            }`}>
-                                                                {/* BOTÓN DE BORRAR (Solo visible si es editable) */}
+                                                            <div className={`h-100 position-relative d-flex flex-column justify-content-center align-items-center border rounded p-2 shadow-sm ${esEditable ? 'bg-success bg-opacity-10 border-success' : 'bg-secondary bg-opacity-10 border-secondary'}`}>
                                                                 {esEditable && (
-                                                                    <button 
-                                                                        onClick={() => handleEliminarPlato(idxDia, momento)}
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); EliminarPlato(i, momento); }}
                                                                         className="position-absolute top-0 end-0 btn btn-sm text-danger p-0 mt-1 me-2 border-0 bg-transparent"
-                                                                        title="Quitar plato"
                                                                         disabled={enviando}
-                                                                    >
-                                                                        ✖
-                                                                    </button>
+                                                                    >✖</button>
                                                                 )}
-
                                                                 <span className={`fw-bold small lh-sm mb-1 text-wrap text-truncate px-2 ${esEditable ? 'text-success' : 'text-muted'}`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                                                     {plato.nombre}
                                                                 </span>
-                                                                <Badge bg={esEditable ? 'success' : 'secondary'} pill style={{ fontSize: '0.65rem' }}>
-                                                                    {plato.calorias} kcal
-                                                                </Badge>
                                                             </div>
                                                         ) : (
-                                                            // Celda vacía (con estilo punteado si es editable)
                                                             <div className="h-100 w-100 border border-dashed rounded d-flex justify-content-center align-items-center bg-light" style={{ borderColor: esEditable ? '#198754' : '#ccc', borderStyle: esEditable ? 'dashed' : 'solid' }}>
                                                                 <small className="text-muted" style={{ fontSize: '0.7rem' }}>
-                                                                    {esEditable ? 'Soltar aquí' : '-'}
+                                                                    {esEditable ? 'Asignar' : '-'}
                                                                 </small>
                                                             </div>
                                                         )}

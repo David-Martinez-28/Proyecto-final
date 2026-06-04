@@ -1,53 +1,43 @@
-import { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../hooks/ApiLogin/axios';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true); // 1. Nuevo estado de carga
 
+    // 2. Verificar sesión al recargar
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            api.get('/user')
-                .then(res => setUser(res.data))
-                .catch(() => logout()) 
-                .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
-        }
+        const verificarSesion = async () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    // Configuramos el token para todas las peticiones
+                    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                    // Pedimos al backend quién es el usuario actual
+                    const { data } = await api.get('/user'); 
+                    setUser(data);
+                } catch (error) {
+                    localStorage.removeItem('token'); // Si el token es inválido, limpiamos
+                }
+            }
+            setLoading(false); // Ya terminamos de comprobar
+        };
+        verificarSesion();
     }, []);
 
     const login = async (credentials) => {
-        try {
-            const res = await api.post('/login', credentials);
-            
-            // 1. Guardamos el token en localStorage
-            localStorage.setItem('token', res.data.access_token);
-            
-            // 2. Configuramos axios para que use el token en futuras peticiones
-            api.defaults.headers.common['Authorization'] = `Bearer ${res.data.access_token}`;
-            
-            // 3. Actualizamos el estado global
-            setUser(res.data.user);
-
-            // --- LÍNEA CLAVE ---
-            // Devolvemos los datos del usuario para que el Login.jsx 
-            // pueda leer el .role y redirigir.
-            return res.data.user; 
-
-        } catch (error) {
-            // --- LÍNEA CLAVE ---
-            // Lanzamos el error para que el 'catch' del componente Login.jsx
-            // se ejecute y muestre el alert de error.
-            throw error; 
-        }
+        const { data } = await api.post('/login', credentials);
+        localStorage.setItem('token', data.access_token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`;
+        setUser(data.user);
+        return data.user;
     };
 
-    const logout = () => {
+    const logout = async () => {
+        await api.post('/logout').catch(() => {});
         localStorage.removeItem('token');
-        delete api.defaults.headers.common['Authorization']; // Limpiamos cabecera
         setUser(null);
     };
 

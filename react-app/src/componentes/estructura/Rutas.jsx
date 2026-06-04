@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Container, Spinner } from 'react-bootstrap';
-import { useAuth } from '../../hooks/ApiLogin/useAuth';
+import {useAuth }  from '../../hooks/ApiLogin/useAuth';
 
 // Importación de tus componentes y vistas
 import Login from '../Login';
@@ -10,6 +10,15 @@ import VistaPaciente from '../VistaPaciente';
 import Navegador from './Navegador';
 import AsignarPlan from '../AsignarPlan';
 import AsignarRutina from '../AsignarRutina'; // O la ruta donde lo hayas guardado
+import CrearEjercicio from '../paginas/CrearEjercicio';
+import CrearIngrediente from '../paginas/CrearIngrediente';
+import CrearRutina from '../paginas/CrearRutina';
+import CrearComida from '../paginas/CrearComida';
+import SolicitarCita from '../SolicitarCita';
+import AgendaDietista from '../AgendaDietista';
+import EstadisticasPaciente from '../EstadisticasPaciente';
+import EvolucionCorporal from '../EvolucionCorporal';
+import Perfil from '../Perfil';
 
 /**
  * 1. LAYOUT PROTEGIDO GLOBAL
@@ -73,13 +82,20 @@ const Rutas = () => {
 
             {/* 🔒 RUTAS PRIVADAS ANIDADAS: Todas estas comparten el Navegador automáticamente */}
             <Route element={<LayoutProtegido />}>
-
+                // En tu archivo donde configuras las rutas (ej: Rutas.jsx)
+                
                 {/* SECCIÓN EXCLUSIVA: DIETISTAS */}
                 <Route element={<FiltroPorRol rolesPermitidos={['dietista']} />}>
                     <Route path="/admin/dashboard" element={<VistaDietista />} />
                     {/* Nueva ruta dinámica para gestionar el plan semanal de cada paciente */}
-                    <Route path="/admin/paciente/:id/plan" element={<AsignarPlan />} />
-                    <Route path="/admin/paciente/:id/rutina" element={<AsignarRutina />} />
+                    <Route path="/dietista/paciente/:id/plan" element={<AsignarPlan />} />
+                    <Route path="/dietista/paciente/:id/rutina" element={<AsignarRutina />} />
+                    <Route path="/dietista/ejercicios" element={<CrearEjercicio />} />
+                    <Route path="/dietista/ingredientes" element={<CrearIngrediente />} />
+                    <Route path="/dietista/rutinas" element={<CrearRutina />} />
+                    <Route path="/dietista/comidas" element={<CrearComida />} />
+                    <Route path="/dietista/agenda" element={<AgendaDietista />} />
+                    <Route path="/dietista/paciente/:id/estadisticas" element={<EstadisticasPaciente />} />
                 </Route>
 
                 {/*  SECCIÓN EXCLUSIVA: PACIENTES */}
@@ -87,8 +103,12 @@ const Rutas = () => {
                     <Route path="/mi-plan" element={<VistaPaciente />} />
                     {/* Nueva ruta activa para ver la receta e ingredientes del plato en grande */}
                     
+                     {/* Nueva ruta para solicitar cita */}
+                     <Route path="/paciente/estadisticas" element={<EstadisticasPaciente />} />
+                    <Route path="/paciente/pedir-cita" element={<SolicitarCita />} />
                 </Route>
-
+                    {/* RUTA DE PERFIL (ACCESIBLE PARA AMBOS ROLES) */}
+                    <Route path="/perfil" element={<Perfil />} />
             </Route>
 
             {/* 🔄 REDIRECCIÓN POR DEFECTO: Si escriben cualquier otra cosa, al Login */}

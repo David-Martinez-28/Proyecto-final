@@ -10,7 +10,7 @@ class Dietista extends Model
 
     protected $table = 'dietistas';
 
-    protected $fillable = ['user_id', 'num_colegiado'];
+    protected $fillable = ['user_id', 'num_colegiado', 'especialidad'];
 
     // Acceder a la cuenta de User
     public function user()

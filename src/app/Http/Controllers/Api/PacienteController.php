@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Paciente;
+use App\Models\Estadistica;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use \Illuminate\Support\Facades\DB;
 class PacienteController extends Controller
@@ -30,58 +33,97 @@ class PacienteController extends Controller
         return response()->json($misPacientes);
     }
 
+    public function update(Request $request, Paciente $paciente): JsonResponse
+{
+    // 1. Validaciones
+    $request->validate([
+        'name' => 'sometimes|string|max:255',
+        'password' => 'nullable|min:8|confirmed',
+        // Si tienes campos específicos de paciente, valídalos aquí:
+        // 'objetivo' => 'sometimes|string',
+    ]);
+
+    // 2. Actualizar datos de la tabla 'pacientes'
+    // $paciente->update($request->only(['objetivo']));
+
+    // 3. Actualizar datos de la tabla 'users'
+    $user = $paciente->user;
+    
+    if ($request->has('name')) {
+        $user->name = $request->name;
+    }
+
+    if ($request->filled('password')) {
+        $user->password = Hash::make($request->password);
+    }
+
+    $user->save();
+
+    // 4. Retornar el objeto cargado con la relación
+    return response()->json($paciente->load('user'), 200);
+}
+
     /**
      * Mostrar el detalle de un paciente específico (Controlado por Dietista propietario).
      */
     public function show(Paciente $paciente)
-    {
-        if ($paciente->dietista_id !== auth()->user()->dietista->id) {
-            return response()->json(['error' => 'No autorizado'], 403);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $paciente->load([
-                'user',
-                'comidas' => function ($q) {
-                    $q->withPivot('dia_semana', 'momento', 'fecha_inicio', 'fecha_fin', 'estado');
-                }
-            ])
-        ]);
+{
+    if ($paciente->dietista_id !== auth()->user()->dietista->id) {
+        return response()->json(['error' => 'No autorizado'], 403);
     }
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $paciente->load([
+            'user',
+            'comidas' => function ($q) {
+                $q->withPivot('dia_semana', 'momento', 'fecha_inicio', 'fecha_fin', 'estado');
+            },
+            
+            'rutinas' => function ($q) {
+                $q->withPivot('fecha_inicio', 'fecha_fin');
+            }
+        ])
+    ]);
+}
 
     /**
      * Obtener el plan del paciente autenticado (Ruta pública para el rol Paciente: /api/mi-plan).
      */
     public function obtenerPlan()
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        if (!$user || $user->role !== 'paciente' || !$user->paciente) {
-            return response()->json(['error' => 'Perfil de paciente no encontrado o no autorizado'], 404);
-        }
-
-        $plan = $user->paciente->load([
-            'comidas' => function ($q) {
-                // 👇 AÑADIMOS LAS COLUMNAS NUEVAS AQUÍ
-                $q->withPivot('dia_semana', 'momento', 'fecha_inicio', 'fecha_fin', 'estado')
-                    ->orderBy('paciente_comida.dia_semana')
-                    ->orderBy('paciente_comida.momento');
-            },
-            'rutinas' => function ($q) {
-                $q->withPivot('fecha_inicio', 'fecha_fin');
-            },
-            'rutinas.ejercicios',
-            'dietista.user' => function ($query) {
-                $query->select('id', 'name', 'email');
-            }
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $plan
-        ], 200);
+    if (!$user || $user->role !== 'paciente' || !$user->paciente) {
+        return response()->json(['error' => 'Perfil de paciente no encontrado o no autorizado'], 404);
     }
+
+    $plan = $user->paciente->load([
+        'comidas' => function ($q) {
+            $q->withPivot('dia_semana', 'momento', 'estado')
+                ->with(['ingredientes' => function ($query) {
+                    // 👇 CARGAMOS LA RELACIÓN INTERMEDIA DE LOS INGREDIENTES
+                    $query->withPivot('cantidad', 'unidad'); 
+                }])
+                ->orderBy('paciente_comida.dia_semana')
+                ->orderBy('paciente_comida.momento');
+        },
+        'rutinas' => function ($q) {
+            $q->withPivot('fecha_inicio', 'fecha_fin');
+        },
+        'rutinas.ejercicios',
+        'dietista.user' => function ($query) {
+            $query->select('id', 'name', 'email');
+        },
+        'estadisticas',
+        'user' 
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $plan
+    ], 200);
+}
 
     /**
      * Asignar una comida al plan (Verificando propiedad).
@@ -175,6 +217,10 @@ class PacienteController extends Controller
     /**
      * Asignar un ejercicio a la cuadrícula (Drag & Drop)
      */
+    /**
+     * Asignar un bloque de rutina a un paciente.
+     * Usamos syncWithoutDetaching para evitar el error 500 por duplicados.
+     */
     public function asignarRutina(Request $request, $id)
     {
         $request->validate([
@@ -184,26 +230,40 @@ class PacienteController extends Controller
         ]);
 
         $paciente = Paciente::findOrFail($id);
+
         if ($paciente->dietista_id !== auth()->user()->dietista->id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
-        $paciente->rutinas()->attach($request->rutina_id, [
-            'fecha_inicio' => $request->fecha_inicio,
-            'fecha_fin' => $request->fecha_fin,
-        ]);
+        try {
+            // syncWithoutDetaching añade si no existe, o actualiza si ya existe
+            $paciente->rutinas()->syncWithoutDetaching([
+                $request->rutina_id => [
+                    'fecha_inicio' => $request->fecha_inicio,
+                    'fecha_fin' => $request->fecha_fin
+                ]
+            ]);
 
-        return response()->json(['message' => 'Rutina asignada correctamente']);
+            return response()->json(['message' => 'Rutina asignada correctamente']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al asignar: ' . $e->getMessage()], 500);
+        }
     }
 
+    /**
+     * Quitar una rutina usando where para asegurar el borrado exacto.
+     */
     public function quitarRutina($id, $rutinaId)
     {
         $paciente = Paciente::findOrFail($id);
+
         if ($paciente->dietista_id !== auth()->user()->dietista->id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
+        // detach borra el registro de la tabla pivote
         $paciente->rutinas()->detach($rutinaId);
+
         return response()->json(['message' => 'Rutina desvinculada correctamente']);
     }
 
@@ -225,5 +285,96 @@ class PacienteController extends Controller
             ]);
 
         return response()->json(['message' => 'Dieta archivada. La cuadrícula está vacía para el nuevo plan.']);
+    }
+    public function guardarEstadistica(Request $request, $pacienteId = null)
+    {
+        $request->validate([
+            'peso' => 'required|numeric',
+            'altura' => 'required|numeric',
+            'porcentaje_graso' => 'nullable|numeric',
+            'masa_muscular' => 'nullable|numeric',
+        ]);
+
+        // 1. Identificar al paciente
+        $paciente = $pacienteId 
+            ? \App\Models\Paciente::findOrFail($pacienteId) 
+            : $request->user()->paciente;
+
+        // 2. SEGURIDAD: Si quien hace la petición es el dietista, validar propiedad
+        if ($request->user()->role === 'dietista') {
+            if ($paciente->dietista_id !== $request->user()->dietista->id) {
+                return response()->json(['error' => 'No autorizado'], 403);
+            }
+        }
+
+        // 3. Crear usando solo los datos validados (más seguro que all())
+        $estadistica = $paciente->estadisticas()->create([
+            'peso' => $request->peso,
+            'altura' => $request->altura,
+            'porcentaje_graso' => $request->porcentaje_graso,
+            'masa_muscular' => $request->masa_muscular,
+        ]);
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'Medidas registradas con éxito', 
+            'data' => $estadistica
+        ], 201);
+    }
+        // En UsuariosController o donde tengas la lógica de evolución
+    public function getEstadisticasPaciente($id) 
+    {
+        try {
+            $user = auth()->user();
+            
+            // Verificación de seguridad inicial
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+
+            // 1. Buscamos al paciente por ID
+            $paciente = Paciente::findOrFail($id);
+
+            // 2. Lógica de Seguridad evitando llamadas a objetos nulos
+            if ($user->role === 'dietista') {
+                // Validamos que la relación exista antes de pedir el ID
+                if (!$user->dietista) {
+                    return response()->json(['error' => 'El usuario es dietista pero no tiene un perfil asociado en la tabla dietistas.'], 400);
+                }
+                // Verificamos que el paciente pertenezca a este dietista
+                if ($paciente->dietista_id !== $user->dietista->id) {
+                    return response()->json(['error' => 'No autorizado para ver este paciente'], 403);
+                }
+            } elseif ($user->role === 'paciente') {
+                // Validamos que la relación del paciente exista
+                if (!$user->paciente) {
+                    return response()->json(['error' => 'El usuario es paciente pero no tiene un registro asociado en la tabla pacientes.'], 400);
+                }
+                // Verificamos que el paciente solo intente ver sus propios datos
+                if ($user->paciente->id !== (int)$id) {
+                    return response()->json(['error' => 'No puedes ver la evolución de otros pacientes'], 403);
+                }
+            } else {
+                return response()->json(['error' => 'Rol de usuario no reconocido'], 403);
+            }
+
+            // 3. Consulta a la base de datos
+            // IMPORTANTE: Asegúrate de que arriba de este archivo tengas: use App\Models\Estadistica;
+            // Si tu modelo se llama en plural (Estadisticas), cambia el nombre aquí abajo:
+            $estadisticas = Estadistica::where('paciente_id', $id)
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            return response()->json($estadisticas);
+
+        } catch (\Exception $e) {
+            // Si el código falla por cualquier motivo, capturamos el error y lo enviamos como JSON
+            return response()->json([
+                'error' => 'Error interno en el controlador de Laravel',
+                'mensaje_error' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine()
+            ], 500);
+        }
     }
 }

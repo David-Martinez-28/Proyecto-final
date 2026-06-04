@@ -22,12 +22,21 @@ class RutinaController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Validamos tanto el nombre como el array de ejercicios
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'descripcion' => 'nullable|string'
+            'ejercicios' => 'required|array', // Validamos que llegue un array
+            'ejercicios.*' => 'exists:ejercicios,id' // Validamos que cada ID exista
         ]);
 
-        $rutina = Rutina::create($validated);
+        // 2. Creamos la rutina
+        $rutina = Rutina::create([
+            'nombre' => $request->nombre
+        ]);
+
+        // 3. Asociamos los ejercicios mediante el método attach o sync
+        // Usamos sync para asegurar que se guarde la relación en la tabla pivote
+        $rutina->ejercicios()->sync($request->ejercicios);
 
         return response()->json($rutina, 201);
     }

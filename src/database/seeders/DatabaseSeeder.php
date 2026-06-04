@@ -16,7 +16,9 @@ class DatabaseSeeder extends Seeder
             ComidaSeeder::class,      // 5. Crea los platos usando ingredientes
             EjercicioSeeder::class,    // 6. Crea los ejercicios
             RutinaSeeder::class,      // 6. Crea los entrenamientos
-            AsignacionSeeder::class,  // 7. FINAL: Une las comidas y rutinas a los pacientes
+            AsignacionSeeder::class,
+            CitaSeeder::class,        // 7. Crea las citas entre dietistas y pacientes
+            EstadisticaSeeder::class, // 7. Crea los registros de estadísticas para cada paciente
         ]);
     }
 }

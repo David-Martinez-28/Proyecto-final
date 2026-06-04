@@ -39,4 +39,9 @@ class Paciente extends Model
             ->withPivot('fecha_inicio', 'fecha_fin')
             ->withTimestamps();
     }
+    
+    public function estadisticas()
+    {
+        return $this->hasMany(Estadistica::class)->orderBy('created_at', 'desc');
+    }
 }

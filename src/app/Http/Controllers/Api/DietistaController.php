@@ -56,16 +56,35 @@ class DietistaController extends Controller
      * Actualizar datos del perfil (Especialidad, num_colegiado, etc.)
      */
     public function update(Request $request, Dietista $dietista): JsonResponse
-    {
-        $dietista->update($request->only(['num_colegiado', 'especialidad']));
+{
+    // 1. Validaciones
+    $request->validate([
+        'name' => 'sometimes|string|max:255',
+        'num_colegiado' => 'sometimes|string',
+        'especialidad' => 'sometimes|string',
+        'password' => 'nullable|min:8|confirmed',
+    ]);
 
-        // Si también queremos actualizar el nombre en la tabla usuarios:
-        if ($request->has('name')) {
-            $dietista->user->update(['name' => $request->name]);
-        }
+    // 2. Actualizar datos de la tabla 'dietistas'
+    $dietista->update($request->only(['num_colegiado', 'especialidad']));
 
-        return response()->json($dietista->load('user'), 200);
+    // 3. Actualizar datos de la tabla 'users'
+    $user = $dietista->user;
+    
+    if ($request->has('name')) {
+        $user->name = $request->name;
     }
+
+    // 4. Lógica de contraseña segura
+    if ($request->filled('password')) {
+        $user->password = Hash::make($request->password);
+    }
+
+    $user->save();
+
+    // 5. Retornar respuesta cargando la relación
+    return response()->json($dietista->load('user'), 200);
+}
 
     /**
      * Eliminar perfil de dietista.

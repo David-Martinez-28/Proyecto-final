@@ -8,7 +8,9 @@ use App\Http\Controllers\Api\PacienteController;
 use App\Http\Controllers\Api\ComidaController;
 use App\Http\Controllers\Api\RutinaController;
 use App\Http\Controllers\Api\EjercicioController;
-
+use App\Http\Controllers\Api\IngredienteController;
+use App\Http\Controllers\Api\CitaController;
+use App\Http\Controllers\Api\UsuariosController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -21,12 +23,26 @@ Route::post('/register', [AuthController::class, 'register']);
 
 // --- RUTAS PROTEGIDAS (Middleware Sanctum) ---
 Route::middleware('auth:sanctum')->group(function () {
-
+    Route::post('/user/update', [UsuariosController::class, 'update']);
+    Route::delete('/user/delete', [UsuariosController::class, 'destroy']);
+    // Rutas de Citas
+    Route::post('/citas', [CitaController::class, 'store']); // Paciente pide cita
+    Route::get('/dietista/mis-citas', [CitaController::class, 'misCitas']); // Dietista ve citas
+    Route::post('/citas/{cita}/estado', [CitaController::class, 'actualizarEstado']); // Dietista actualiza
     // Perfil del usuario autenticado
     Route::get('/user', function (Request $request) {
         return $request->user()->load($request->user()->role === 'paciente' ? 'paciente' : 'dietista');
     });
+    // Rutas de estadísticas
+    // Para guardar (la que ya tenías)
+    Route::post('/pacientes/estadisticas/{id?}', [PacienteController::class, 'guardarEstadistica']);
 
+    // --- AÑADE ESTA LÍNEA PARA PODER LEERLAS Y VER EL GRÁFICO ---
+    Route::get('/paciente/{id}/estadisticas', [PacienteController::class, 'getEstadisticasPaciente']);
+
+    // Rutas de estadísticas
+    // Para el paciente (propia) y para el dietista (especificando ID)
+    Route::post('/pacientes/estadisticas/{id?}', [PacienteController::class, 'guardarEstadistica']);
     // Subida de foto de perfil
     Route::post('/user/avatar', [AuthController::class, 'uploadAvatar']);
 
@@ -36,7 +52,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('comidas', ComidaController::class);
     Route::apiResource('rutinas', RutinaController::class);
     Route::apiResource('ejercicios', EjercicioController::class); // Catálogo de ejercicios
-
+    Route::apiResource('ingredientes', IngredienteController::class);
+    Route::apiResource('citas', CitaController::class);
+    Route::apiResource('usuarios', UsuariosController::class);
     // --- ASIGNACIÓN DE RUTINAS (Bloques enteros) ---
     Route::post('/pacientes/{id}/asignar-rutina', [PacienteController::class, 'asignarRutina']);
     Route::delete('/pacientes/{id}/quitar-rutina/{rutina_id}', [PacienteController::class, 'quitarRutina']);

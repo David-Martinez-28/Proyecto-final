@@ -1,11 +1,252 @@
-// 1. Importamos tus variables (sobrescribe las de Bootstrap)
-@import 'variables';
-
-// 2. Importamos el núcleo de Bootstrap
-@import 'bootstrap/scss/bootstrap';
-
-// 3. (Opcional) Aquí puedes añadir estilos globales si los necesitas
+// --- Variables Globales ---
+:root {
+    --primary-gradient: linear-gradient(135deg, #3899c5, #1c56d4);
+    --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    --border-radius-main: 24px;
+    --background: var(--background); 
+    --navbar_fondo: #667eea;
+}
 body {
-    background-color: $background;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--background);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+
+// --- Estilos de Login ---
+.login-container {
+    background: var(--background);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+
+    .card-login {
+        border-radius: var(--border-radius-main);
+        box-shadow: var(--card-shadow);
+        padding: 2.5rem;
+
+        .card-body {
+            gap: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+        padding: 0.8rem;
+        font-size: 1.1rem;
+        margin-top: 1rem;
+    }
+
+    .form-control {
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+
+        &:focus {
+            box-shadow: 0 0 0 0.25rem rgba(118, 75, 162, 0.2);
+        }
+    }
+}
+
+// <--- Llave de cierre corregida para login-container
+
+// --- Estilos de Paciente ---
+.vista-paciente {
+    padding: 2rem;
+
+    .plan-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .historial-sidebar {
+        background: var(--background);
+        border-radius: 15px;
+        padding: 1rem;
+    }
+
+    .plan-grid-card {
+        border-radius: 20px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+
+        .plan-table {
+            text-align: center;
+            vertical-align: middle;
+
+            td {
+                height: 80px;
+                transition: background 0.2s;
+            }
+
+            td:hover {
+                background: var(--background);
+                cursor: pointer;
+            }
+
+            .momento-label {
+                font-weight: bold;
+                text-transform: capitalize;
+                background: var(--background);
+            }
+        }
+    }
+}
+
+
+// --- Estilos de Dietista ---
+.dashboard-dietista {
+    padding: 2rem;
+    max-width: 1900px;
+    margin: 0 auto;
+    background: var(--background);
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-card {
+        border: none;
+        box-shadow: var(--card-shadow);
+        border-radius: 20px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .table-container {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+        background: var(--background);
+
+        table {
+            margin-bottom: 0;
+
+            thead {
+                background: var(--background);
+            }
+        }
+    }
+    
+}
+
+.comida-modal {
+    .modal-content {
+        border: none;
+        border-radius: 20px;
+        overflow: hidden; // Evita que los bordes internos se salgan
+        max-height: 90vh; // El modal nunca será más alto que el 90% de la pantalla
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header {
+        flex-shrink: 0; // Evita que el header se encoja
+    }
+
+    .modal-body {
+        overflow-y: auto; // Solo el cuerpo tendrá scroll si el texto es muy largo
+        padding: 1.5rem;
+
+        // Añade esto dentro de .modal-body
+        @media (max-width: 576px) {
+            padding: 1rem;
+
+            .imagen-wrapper img {
+                max-height: 180px;
+            }
+        }
+
+        .detalle-contenido {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .imagen-wrapper {
+            width: 100%;
+
+            img {
+                width: 100%;
+                max-height: 250px; // Altura fija para evitar imágenes gigantes
+                object-fit: cover; // Mantiene la proporción sin deformarse
+                border-radius: 15px;
+            }
+        }
+    }
+}
+.navbar {
+    // Corrección: usa 'background' para el gradiente
+    background: var(--navbar_fondo);
+    box-shadow: var(--card-shadow);
+    border-radius: 0 0 20px 20px;
+
+    .nav-link {
+        color: white; // Usamos blanco para que contraste con el fondo azul/gradiente
+        font-weight: 500;
+        transition: color 0.3s ease; // Suaviza el cambio de color
+
+        &:hover {
+            color: #f8f9fa; // Un color claro al pasar el ratón es más legible
+        }  
+    }
+}
+
+
+.botton-login {
+    background: var(--primary-gradient);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.1rem;
+    margin-top: 1rem;
+    color: white;
+    border-radius: 12px;
+
+    
+}
+.tabla-pacientes {
+    tr {
+        transition: background 0.2s;
+        box-shadow: var(--card-shadow);
+
+        &:hover {
+            background: var(--background);
+            cursor: pointer;
+        }
+    }
+}
+.foto-perfil {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.button {
+    background: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: #000;
+    border-radius: 12px ;
+    border: 1px solid blue;
+
+    &:hover {
+        background: #1c56d4; // Un tono más oscuro para el hover
+    }
+}
+.imagen-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 15px;
 }

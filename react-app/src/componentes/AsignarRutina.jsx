@@ -1,42 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Table, Spinner, Badge } from 'react-bootstrap';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import api from '../hooks/ApiLogin/axios';
+import { useNavigate, useParams } from 'react-router-dom';
+
+// Hooks de API modulares
+import useApiGet from '../hooks/ApiDietista/useApiGet';
+import useApiPost from '../hooks/ApiDietista/useApiPost';
+import useApiDelete from '../hooks/ApiDietista/useApiDelete';
 
 const AsignarRutina = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
-    const paciente = location.state?.paciente;
 
+    // --- ESTADOS ---
     const [rutinasCatalogo, setRutinasCatalogo] = useState([]);
-    const [rutinasPaciente, setRutinasPaciente] = useState([]); 
+    const [rutinasPaciente, setRutinasPaciente] = useState([]);
+    const [infoPaciente, setInfoPaciente] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [enviando, setEnviando] = useState(false);
-    
-    // Estado para el formulario
+
     const [asignacion, setAsignacion] = useState({
         rutina_id: '',
         fecha_inicio: '',
         fecha_fin: ''
     });
 
-    const cargarDatosPaciente = async () => {
-        try {
-            const res = await api.get(`/pacientes/${id}`);
-            setRutinasPaciente(res.data.data?.rutinas || []);
-        } catch (error) {
-            console.error("Error cargando rutinas del paciente:", error);
-        }
-    };
+   const cargarDatosPaciente = async () => {
+    const res = await useApiGet(`/pacientes/${id}`);
+    console.log("JSON recibido de la API:", res);
+    
+    // Si res.data existe, usamos eso. Si res viene directo, usamos res.
+    const pacienteData = res.data || res; 
+    
+    if (pacienteData) {
+        setInfoPaciente(pacienteData);
+        // AQUÍ ESTABA EL ERROR: Acceder a "rutinas" dentro de "pacienteData"
+        setRutinasPaciente(pacienteData.rutinas || []);
+    }
+};
 
     useEffect(() => {
         const inicializar = async () => {
+            setCargando(true);
             try {
-                // Descargamos el catálogo de rutinas
-                const resRutinas = await api.get('/rutinas');
-                const dataRutinas = Array.isArray(resRutinas.data) ? resRutinas.data : resRutinas.data.data;
-                setRutinasCatalogo(dataRutinas || []);
+                const dataRutinas = await useApiGet('/rutinas');
+                if (dataRutinas) setRutinasCatalogo(dataRutinas);
                 await cargarDatosPaciente();
             } catch (error) {
                 console.error("Error inicializando:", error);
@@ -47,37 +54,37 @@ const AsignarRutina = () => {
         inicializar();
     }, [id]);
 
-    const handleAsignarRutina = async (e) => {
+    // Renombrado para evitar conflicto con el nombre del componente
+    const handleEnviarAsignacion = async (e) => {
         e.preventDefault();
-        if(!asignacion.rutina_id || !asignacion.fecha_inicio || !asignacion.fecha_fin) {
+        if (!asignacion.rutina_id || !asignacion.fecha_inicio || !asignacion.fecha_fin) {
             return alert("Por favor, rellena todos los campos.");
         }
 
-        try {
-            setEnviando(true);
-            await api.post(`/pacientes/${id}/asignar-rutina`, asignacion);
-            await cargarDatosPaciente(); // Recargar la tabla
-            setAsignacion({ rutina_id: '', fecha_inicio: '', fecha_fin: '' }); // Limpiar
-        } catch (error) {
-            console.error("Error al asignar:", error);
+        setEnviando(true);
+        const exito = await useApiPost(`/pacientes/${id}/asignar-rutina`, asignacion);
+
+        if (exito) {
+            await cargarDatosPaciente();
+            setAsignacion({ rutina_id: '', fecha_inicio: '', fecha_fin: '' });
+        } else {
             alert("Hubo un error al guardar la rutina.");
-        } finally {
-            setEnviando(false);
         }
+        setEnviando(false);
     };
 
     const handleEliminarRutina = async (rutinaId) => {
-        if (!window.confirm("¿Seguro que quieres desvincular esta rutina del paciente?")) return;
-        try {
-            setEnviando(true);
-            await api.delete(`/pacientes/${id}/quitar-rutina/${rutinaId}`);
+        if (!window.confirm("¿Seguro que quieres desvincular esta rutina?")) return;
+
+        setEnviando(true);
+        const exito = await useApiDelete(`/pacientes/${id}/quitar-rutina/${rutinaId}`);
+
+        if (exito) {
             await cargarDatosPaciente();
-        } catch (error) {
-            console.error("Error al eliminar:", error);
-            alert("Hubo un error al borrar.");
-        } finally {
-            setEnviando(false);
+        } else {
+            alert("Hubo un error al borrar la rutina.");
         }
+        setEnviando(false);
     };
 
     if (cargando) {
@@ -95,24 +102,27 @@ const AsignarRutina = () => {
                     ← Volver a Mis Pacientes
                 </Button>
                 <h2 className="fw-bold mb-0 text-dark">
-                    Asignar Bloques: <span className="text-danger">{paciente?.user?.name || `Paciente #${id}`}</span>
+                    Asignar Bloques:
+                    <span className="text-danger ms-2">
+                        {/* Accedemos a user.name */}
+                        {infoPaciente?.user?.name || 'Paciente'}
+                    </span>
                 </h2>
             </div>
 
             <Row className="g-4">
-                {/* FORMULARIO DE ASIGNACIÓN */}
                 <Col lg={4}>
                     <Card className="border-0 shadow-sm rounded-4">
                         <Card.Header className="bg-danger text-white rounded-top-4 py-3 border-0">
                             <h6 className="mb-0 fw-bold fs-5">➕ Nueva Asignación</h6>
                         </Card.Header>
                         <Card.Body className="p-4">
-                            <Form onSubmit={handleAsignarRutina}>
+                            <Form onSubmit={handleEnviarAsignacion}>
                                 <Form.Group className="mb-3">
                                     <Form.Label className="fw-bold text-secondary small text-uppercase">Bloque de Entrenamiento</Form.Label>
-                                    <Form.Select 
+                                    <Form.Select
                                         value={asignacion.rutina_id}
-                                        onChange={(e) => setAsignacion({...asignacion, rutina_id: e.target.value})}
+                                        onChange={(e) => setAsignacion({ ...asignacion, rutina_id: e.target.value })}
                                         className="shadow-sm border-0 bg-light"
                                     >
                                         <option value="">-- Selecciona una Rutina --</option>
@@ -126,23 +136,13 @@ const AsignarRutina = () => {
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
                                             <Form.Label className="fw-bold text-secondary small text-uppercase">Fecha Inicio</Form.Label>
-                                            <Form.Control 
-                                                type="date"
-                                                value={asignacion.fecha_inicio}
-                                                onChange={(e) => setAsignacion({...asignacion, fecha_inicio: e.target.value})}
-                                                className="shadow-sm border-0 bg-light"
-                                            />
+                                            <Form.Control type="date" value={asignacion.fecha_inicio} onChange={(e) => setAsignacion({ ...asignacion, fecha_inicio: e.target.value })} className="shadow-sm border-0 bg-light" />
                                         </Form.Group>
                                     </Col>
                                     <Col md={6}>
                                         <Form.Group className="mb-4">
                                             <Form.Label className="fw-bold text-secondary small text-uppercase">Fecha Fin</Form.Label>
-                                            <Form.Control 
-                                                type="date"
-                                                value={asignacion.fecha_fin}
-                                                onChange={(e) => setAsignacion({...asignacion, fecha_fin: e.target.value})}
-                                                className="shadow-sm border-0 bg-light"
-                                            />
+                                            <Form.Control type="date" value={asignacion.fecha_fin} onChange={(e) => setAsignacion({ ...asignacion, fecha_fin: e.target.value })} className="shadow-sm border-0 bg-light" />
                                         </Form.Group>
                                     </Col>
                                 </Row>
@@ -155,47 +155,24 @@ const AsignarRutina = () => {
                     </Card>
                 </Col>
 
-                {/* LISTADO DE RUTINAS ACTIVAS */}
                 <Col lg={8}>
                     <Card className="border-0 shadow-sm rounded-4 h-100">
                         <Card.Body className="p-4">
                             <h5 className="fw-bold text-secondary mb-4">Rutinas Vigentes</h5>
-                            
                             {rutinasPaciente.length === 0 ? (
                                 <div className="text-center py-5 opacity-50">
-                                    <h1 className="display-4">📋</h1>
                                     <p>Este paciente no tiene rutinas asignadas aún.</p>
                                 </div>
                             ) : (
                                 <Table hover className="align-middle">
-                                    <thead className="bg-light">
-                                        <tr>
-                                            <th className="py-3">Rutina</th>
-                                            <th className="py-3 text-center">Inicio</th>
-                                            <th className="py-3 text-center">Fin</th>
-                                            <th className="py-3 text-end">Acciones</th>
-                                        </tr>
-                                    </thead>
+                                    <thead className="bg-light"><tr><th>Rutina</th><th className="text-center">Inicio</th><th className="text-center">Fin</th><th className="text-end">Acciones</th></tr></thead>
                                     <tbody>
                                         {rutinasPaciente.map((r, index) => (
                                             <tr key={index}>
-                                                <td>
-                                                    <p className="fw-bold text-dark mb-0">{r.nombre}</p>
-                                                    <small className="text-muted text-truncate d-inline-block" style={{ maxWidth: '250px' }}>
-                                                        {r.descripcion}
-                                                    </small>
-                                                </td>
-                                                <td className="text-center">
-                                                    <Badge bg="secondary" className="fw-normal">{r.pivot.fecha_inicio}</Badge>
-                                                </td>
-                                                <td className="text-center">
-                                                    <Badge bg="danger" className="fw-normal">{r.pivot.fecha_fin}</Badge>
-                                                </td>
-                                                <td className="text-end">
-                                                    <Button variant="outline-danger" size="sm" onClick={() => handleEliminarRutina(r.id)}>
-                                                        Quitar
-                                                    </Button>
-                                                </td>
+                                                <td><p className="fw-bold text-dark mb-0">{r.nombre}</p></td>
+                                                <td className="text-center"><Badge bg="secondary">{r.pivot?.fecha_inicio}</Badge></td>
+                                                <td className="text-center"><Badge bg="danger">{r.pivot?.fecha_fin}</Badge></td>
+                                                <td className="text-end"><Button variant="outline-danger" size="sm" onClick={() => handleEliminarRutina(r.id)}>Quitar</Button></td>
                                             </tr>
                                         ))}
                                     </tbody>

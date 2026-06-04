@@ -1,222 +1,149 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Form, Button, Table, Badge, Spinner, Alert } from 'react-bootstrap';
-import api from '../hooks/ApiLogin/axios';
-import { useAuth } from '../hooks/ApiLogin/useAuth';
+import { Container, Card, Form, Button, Table, Badge, Spinner, Alert, Row, Col, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { useClinica } from '../contexto/contexto.jsx';
 
 const VistaDietista = () => {
-    const [pacientes, setPacientes] = useState([]);
+    const navigate = useNavigate();
+    const { pacientes, iniciarPacientes, insertarPaciente, registrarEstadistica } = useClinica();
+    const [busqueda, setBusqueda] = useState('');
     const [mostrarForm, setMostrarForm] = useState(false);
     const [cargando, setCargando] = useState(true);
-    const navigate = useNavigate();
-    const [nuevoPaciente, setNuevoPaciente] = useState({
-        name: '', email: '', password: '', nick: ''
-    });
+    const [enviando, setEnviando] = useState(false);
+    const [nuevoPaciente, setNuevoPaciente] = useState({ name: '', email: '', password: '', nick: '' });
 
-    const { user, logout } = useAuth();
-
-    const cargarPacientes = async () => {
-        try {
-            setCargando(true);
-            const res = await api.get('/pacientes');
-            const dataData = Array.isArray(res.data) ? res.data : res.data.data;
-            setPacientes(dataData || []);
-        } catch (err) {
-            console.error("Error cargando pacientes:", err);
-        } finally {
-            setCargando(false);
-        }
-    };
+    const [showModalStats, setShowModalStats] = useState(false);
+    const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
+    const [nuevasStats, setNuevasStats] = useState({ peso: '', altura: '', porcentaje_graso: '', masa_muscular: '' });
 
     useEffect(() => {
-        cargarPacientes();
-    }, []);
-
+        const cargar = async () => {
+            setCargando(true);
+            await iniciarPacientes();
+            setCargando(false);
+        };
+        cargar();
+    }, [iniciarPacientes]);
+    const pacientesFiltrados = pacientes.filter(p =>
+        p.user.name.toLowerCase().includes(busqueda.toLowerCase()) ||
+        p.nick.toLowerCase().includes(busqueda.toLowerCase()) ||
+        p.user.email.toLowerCase().includes(busqueda.toLowerCase())
+    );
     const handleCrearPaciente = async (e) => {
         e.preventDefault();
-        try {
-            await api.post('/register', { ...nuevoPaciente, role: 'paciente' });
+        setEnviando(true);
+        if (await insertarPaciente(nuevoPaciente)) {
             setMostrarForm(false);
             setNuevoPaciente({ name: '', email: '', password: '', nick: '' });
-            cargarPacientes();
-        } catch (err) {
-            console.error(err);
-            alert(err.response?.data?.message || "Error al crear el paciente. Verifica los datos.");
         }
+        setEnviando(false);
     };
 
-    // --- PANTALLA DE CARGA ---
-    if (cargando) {
-        return (
-            <Container className="d-flex flex-column justify-content-center align-items-center vh-100">
-                <Spinner animation="border" variant="primary" />
-                <h5 className="mt-3 text-muted">Cargando panel de control...</h5>
-            </Container>
-        );
-    }
+    const handleGuardarStats = async (e) => {
+        e.preventDefault();
+        setEnviando(true);
+        if (await registrarEstadistica(nuevasStats, pacienteSeleccionado.id)) {
+            setShowModalStats(false);
+            setNuevasStats({ peso: '', altura: '', porcentaje_graso: '', masa_muscular: '' });
+        }
+        setEnviando(false);
+    };
+
+    if (cargando) return <Container className="d-flex justify-content-center align-items-center vh-100"><Spinner animation="border" variant="primary" /></Container>;
 
     return (
-        <Container className="py-5" style={{ maxWidth: '1200px' }}>
-            <main>
-                {/* Título de sección y botón de acción */}
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h3 className="mb-0 fw-bold">Mis Pacientes</h3>
-                    <Button
-                        variant={mostrarForm ? "secondary" : "success"}
-                        className="fw-bold px-4"
-                        onClick={() => setMostrarForm(!mostrarForm)}
-                    >
-                        {mostrarForm ? 'Cancelar' : '+ Nuevo Paciente'}
-                    </Button>
-                </div>
+        <main className="dashboard-dietista">
+            <div className="header-section">
+                <h3>Mis Pacientes</h3>
+                <Button variant={mostrarForm ? "secondary" : "success"} onClick={() => setMostrarForm(!mostrarForm)}>
+                    {mostrarForm ? 'Cancelar' : '+ Nuevo Paciente'}
+                </Button>
+            </div>
 
-                {/* Formulario Dinámico de Creación */}
-                {mostrarForm && (
-                    <Card className="mb-5 border-0 shadow-sm bg-light">
-                        <Card.Body className="p-4">
-                            <Card.Title className="mb-4 text-dark fw-bold">
-                                Registrar Nuevo Paciente
-                            </Card.Title>
+            {/* --- AQUÍ ESTABA EL BLOQUE QUE FALTABA --- */}
+            {mostrarForm && (
+                <Card className="form-card mb-4 shadow-sm">
+                    <Card.Body>
+                        <Form onSubmit={handleCrearPaciente}>
+                            <Row className="g-3">
+                                <Col md={6}><Form.Control placeholder="Nombre" value={nuevoPaciente.name} onChange={e => setNuevoPaciente({ ...nuevoPaciente, name: e.target.value })} required /></Col>
+                                <Col md={6}><Form.Control placeholder="Nick" value={nuevoPaciente.nick} onChange={e => setNuevoPaciente({ ...nuevoPaciente, nick: e.target.value })} required /></Col>
+                                <Col md={6}><Form.Control type="email" placeholder="Email" value={nuevoPaciente.email} onChange={e => setNuevoPaciente({ ...nuevoPaciente, email: e.target.value })} required /></Col>
+                                <Col md={6}><Form.Control type="password" placeholder="Contraseña" value={nuevoPaciente.password} onChange={e => setNuevoPaciente({ ...nuevoPaciente, password: e.target.value })} required /></Col>
+                            </Row>
+                            <Button variant="success" type="submit" className="mt-3 w-100" disabled={enviando}>{enviando ? <Spinner size="sm" /> : 'Guardar Paciente'}</Button>
+                        </Form>
+                    </Card.Body>
+                </Card>
+            )}
+            <div className="mb-3">
+                <Form.Control
+                    type="text"
+                    placeholder="Buscar paciente por nombre, nick o email..."
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    className="shadow-sm"
+                />
+            </div>
 
-                            <Form onSubmit={handleCrearPaciente}>
-                                <Row>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label className="fw-semibold">Nombre Completo:</Form.Label>
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Ej. Juan Pérez"
-                                                value={nuevoPaciente.name}
-                                                onChange={e => setNuevoPaciente({ ...nuevoPaciente, name: e.target.value })}
-                                                required
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label className="fw-semibold">Nick único (para la app):</Form.Label>
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Ej. juanp88"
-                                                value={nuevoPaciente.nick}
-                                                onChange={e => setNuevoPaciente({ ...nuevoPaciente, nick: e.target.value })}
-                                                required
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label className="fw-semibold">Correo Electrónico:</Form.Label>
-                                            <Form.Control
-                                                type="email"
-                                                placeholder="juan@correo.com"
-                                                value={nuevoPaciente.email}
-                                                onChange={e => setNuevoPaciente({ ...nuevoPaciente, email: e.target.value })}
-                                                required
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label className="fw-semibold">Contraseña Temporal:</Form.Label>
-                                            <Form.Control
-                                                type="password"
-                                                placeholder="Mínimo 8 caracteres"
-                                                value={nuevoPaciente.password}
-                                                onChange={e => setNuevoPaciente({ ...nuevoPaciente, password: e.target.value })}
-                                                required
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-
-                                <Button variant="primary" type="submit" className="w-100 fw-bold mt-3 py-2">
-                                    Guardar y Crear Acceso
-                                </Button>
-                            </Form>
-                        </Card.Body>
-                    </Card>
-                )}
-
-                {/* Listado de Pacientes / Estado Vacío */}
-                {pacientes.length === 0 ? (
-                    <Alert variant="info" className="text-center p-5 mt-4 border rounded">
-                        <h5 className="text-info fw-bold">No tienes pacientes asignados todavía.</h5>
-                        <p className="mb-0 text-muted">¡Haz clic en el botón de arriba para registrar a tu primer paciente!</p>
-                    </Alert>
-                ) : (
-                    <Card className="border-0 shadow-sm overflow-hidden">
-                        <Table responsive hover className="mb-0 align-middle">
-                            <thead className="table-light border-bottom">
-                                <tr>
-                                    <th className="py-3 ps-4">Paciente</th>
-                                    <th className="py-3">Nick</th>
-                                    <th className="py-3">Email</th>
-                                    <th className="py-3 text-center pe-4">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pacientes.map(p => (
+            <div className="table-container shadow-sm rounded-3 overflow-hidden">
+                {/* Añadimos 'table-responsive' para que la tabla no rompa el layout en móviles */}
+                <div className="table-responsive">
+                    <Table hover className="align-middle mb-0 text-nowrap">
+                        <thead className="table-light">
+                            <tr>
+                                <th>Avatar</th>
+                                <th>Paciente</th>
+                                <th>Nick</th>
+                                <th>Email</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="table-group-divider tabla-pacientes">
+                            {pacientesFiltrados.length > 0 ? (
+                                pacientesFiltrados.map(p => (
                                     <tr key={p.id}>
-                                        <td className="py-3 ps-4">
-                                            <div className="d-flex align-items-center gap-3">
-                                                <img
-                                                    src={p.user.avatar || `https://ui-avatars.com/api/?background=e9ecef&color=333&name=${p.user.name || 'U'}`}
-                                                    alt={`Avatar de ${p.user.name}`}
-                                                    className="rounded-circle object-fit-cover border shadow-sm"
-                                                    width="45"
-                                                    height="45"
-                                                />
-                                                <div>
-                                                    <h6 className="mb-0 fw-bold text-dark">{p.user.name || 'Sin nombre'}</h6>
-
-                                                </div>
+                                        <td><img className="foto-perfil" src={p.user.imagen} alt="" /></td>
+                                        <td>{p.user.name}</td>
+                                        <td><Badge bg="light" text="dark">{p.nick}</Badge></td>
+                                        <td>{p.user.email}</td>
+                                        <td>
+                                            <div className="d-flex flex-wrap gap-2">
+                                                <Button size="sm" className='button' onClick={() => navigate(`/dietista/paciente/${p.id}/plan`)}>🥗 Plan</Button>
+                                                <Button size="sm" className='button' onClick={() => navigate(`/dietista/paciente/${p.id}/rutina`)}>💪 Rutina</Button>
+                                                <Button size="sm" className='button' onClick={() => { setPacienteSeleccionado(p); setShowModalStats(true); }}>📈 Medidas</Button>
+                                                <Button size="sm" className='button' onClick={() => navigate(`/dietista/paciente/${p.id}/estadisticas`)}>Ver Evolución</Button>
                                             </div>
                                         </td>
-
-                                        <td className="py-3">
-                                            <Badge bg="success" className="px-3 py-2 rounded-pill bg-opacity-10 text-success border border-success">
-                                                @{p.nick}
-                                            </Badge>
-                                        </td>
-
-                                        <td className="py-3 text-secondary">{p.user?.email}</td>
-
-                                        <td className="py-3 text-center pe-4">
-                                            <Button
-                                                variant="primary"
-                                                size="sm"
-                                                className="me-2 fw-bold shadow-sm rounded-pill px-3"
-                                                // 👇 AQUÍ ESTÁ LA MAGIA DEL ENRUTAMIENTO
-                                                onClick={() => navigate(`/admin/paciente/${p.id}/plan`, { state: { paciente: p } })}
-                                            >
-                                                🥗 Plan
-                                            </Button>
-                                            <Button
-                                                variant="danger"
-                                                size="sm"
-                                                className="me-2 fw-bold shadow-sm rounded-pill px-3"
-                                                onClick={() => navigate(`/admin/paciente/${p.id}/rutina`, { state: { paciente: p } })}
-                                            >
-                                                🏋️ Rutina
-                                            </Button>
-                                            <Button
-                                                variant="light"
-                                                size="sm"
-                                                className="fw-bold text-dark border shadow-sm rounded-pill px-3"
-                                                onClick={() => alert(`Editar perfil de: ${p.nick}`)}
-                                            >
-                                                ⚙️ Editar
-                                            </Button>
-                                        </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    </Card>
-                )}
-            </main>
-        </Container>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="text-center py-4 text-muted">
+                                        No se encontraron pacientes que coincidan con la búsqueda.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </Table>
+                </div>
+            </div>
+
+            <Modal show={showModalStats} onHide={() => setShowModalStats(false)} centered>
+                <Modal.Header closeButton><Modal.Title>Registrar medidas para {pacienteSeleccionado?.user?.name}</Modal.Title></Modal.Header>
+                <Modal.Body>
+                    <Form onSubmit={handleGuardarStats}>
+                        <Row className="g-3">
+                            <Col md={6}><Form.Control type="number" placeholder="Peso (kg)" value={nuevasStats.peso} onChange={e => setNuevasStats({ ...nuevasStats, peso: e.target.value })} required /></Col>
+                            <Col md={6}><Form.Control type="number" placeholder="Altura (cm)" value={nuevasStats.altura} onChange={e => setNuevasStats({ ...nuevasStats, altura: e.target.value })} required /></Col>
+                            <Col md={6}><Form.Control type="number" placeholder="% Graso" value={nuevasStats.porcentaje_graso} onChange={e => setNuevasStats({ ...nuevasStats, porcentaje_graso: e.target.value })} /></Col>
+                            <Col md={6}><Form.Control type="number" placeholder="Masa Muscular (kg)" value={nuevasStats.masa_muscular} onChange={e => setNuevasStats({ ...nuevasStats, masa_muscular: e.target.value })} /></Col>
+                        </Row>
+                        <Button variant="success" type="submit" className="mt-3 w-100" disabled={enviando}>Guardar</Button>
+                    </Form>
+                </Modal.Body>
+            </Modal>
+        </main>
     );
 };
 

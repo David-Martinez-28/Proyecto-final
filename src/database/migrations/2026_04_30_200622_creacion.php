@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->timestamp('email_verified_at')->nullable(); // ESTA ES LA QUE FALTA
             $table->string('password');
             $table->enum('role', ['dietista', 'paciente'])->default('paciente');
+            $table->string('imagen')->default('default.png');
             $table->rememberToken();
             $table->timestamps();
         });
@@ -24,7 +25,7 @@ return new class extends Migration {
             $table->id();
             // Relación 1:1 con la cuenta de usuario
             $table->foreignId('user_id')->constrained('usuarios')->cascadeOnDelete();
-            $table->string('num_colegiado')->unique();
+            $table->string('num_colegiado')->unique()->nullable();
             $table->string('especialidad')->nullable();
             $table->timestamps();
         });
@@ -81,6 +82,7 @@ return new class extends Migration {
             $table->decimal('cantidad', 8, 2);
             $table->string('unidad', 20)->default('g');
             $table->primary(['comida_id', 'ingrediente_id']);
+            $table->timestamps();
         });
 
         Schema::create('ejercicio_rutina', function (Blueprint $table) {

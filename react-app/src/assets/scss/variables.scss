@@ -1,11 +1,16 @@
-// Aquí defines los colores de tu marca antes de cargar Bootstrap
-// Ej: Colores orientados a salud/nutrición
-$primary: #27ae60;    // Verde principal
-$secondary: #2c3e50;  // Azul oscuro para textos/cabeceras
-$success: #2ecc71;    // Verde éxito
-$info: #3498db;       // Azul información
-$background: #f8f9fa; // Fondo general de la app
+// src/styles/_variables.scss
 
-// Bordes redondeados más amigables
-$border-radius: 8px;
-$border-radius-lg: 12px;
+// 1. COLORES DE LA MARCA
+$primary: #198754;   // Tu verde característico (sobrescribe el azul por defecto de Bootstrap)
+$danger: #dc3545;    // El rojo para las rutinas
+$background: #f8f9fa; // Un gris muy clarito para el fondo de la app
+
+// 2. MODIFICAMOS COMPONENTES GLOBALES DE BOOTSTRAP
+// Hacemos que todas las tarjetas, botones y modales sean más redondeados
+$border-radius: 1rem;
+$border-radius-sm: 0.5rem;
+$border-radius-lg: 1.5rem;
+
+// 3. SOMBRAS
+$box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+$box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);

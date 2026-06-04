@@ -6,84 +6,54 @@ use App\Http\Controllers\Controller;
 use App\Models\Comida;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class ComidaController extends Controller
 {
-    /**
-     * Lista todas las comidas con sus ingredientes.
-     */
     public function index(): JsonResponse
-    {
-        // Cargamos la relación ingredientes con sus pivotes (cantidad y unidad)
-        return response()->json(Comida::with('ingredientes')->get(), 200);
-    }
+{
+    // Quitamos la relación 'ingredientes' para aislar el error
+    return response()->json(Comida::all(), 200);
+}
 
-    /**
-     * Crea una nueva comida en el catálogo.
-     */
     public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'descripcion' => 'nullable|string'
-        ]);
+{
+    $request->validate([
+        'nombre' => 'required|string|max:255',
+        'ingredientes' => 'required|array',
+        'ingredientes.*.id' => 'required|exists:ingredientes,id',
+        'ingredientes.*.cantidad' => 'required|numeric',
+    ]);
 
-        $comida = Comida::create($validated);
+    return DB::transaction(function () use ($request) {
+        // 1. Crear la comida (sin calorías todavía)
+        $comida = Comida::create($request->only(['nombre', 'receta', 'descripcion', 'imagen']));
 
-        return response()->json($comida, 201);
-    }
+        $totalCalorias = 0;
 
-    /**
-     * Muestra una comida específica.
-     */
+        foreach ($request->ingredientes as $ingData) {
+            // Buscamos el ingrediente para obtener su valor nutricional
+            $ingrediente = \App\Models\Ingrediente::findOrFail($ingData['id']);
+            
+            // Cálculo: (Kcal por 100g / 100) * cantidad en gramos
+            $totalCalorias += ($ingrediente->kcal_por_100g / 100) * $ingData['cantidad'];
+
+            // 2. Vincular el ingrediente
+            $comida->ingredientes()->attach($ingData['id'], [
+                'cantidad' => $ingData['cantidad'],
+                'unidad' => $ingData['unidad'] ?? 'g'
+            ]);
+        }
+
+        // 3. Actualizamos la comida con el total calculado
+        $comida->update(['calorias' => round($totalCalorias)]);
+
+        return response()->json(['message' => 'Comida creada con éxito', 'data' => $comida], 201);
+    });
+}
+
     public function show($id): JsonResponse
     {
-        $comida = Comida::with('ingredientes')->findOrFail($id);
-        return response()->json($comida, 200);
-    }
-
-    /**
-     * Método Especial: Añadir ingredientes a una comida.
-     * Usa la tabla pivote 'comida_ingrediente'.
-     */
-    public function agregarIngrediente(Request $request, $comidaId): JsonResponse
-    {
-        $comida = Comida::findOrFail($comidaId);
-
-        $request->validate([
-            'ingrediente_id' => 'required|exists:ingredientes,id',
-            'cantidad' => 'required|numeric|min:0',
-            'unidad' => 'required|string|max:20' 
-        ]);
-
-        // Usamos attach para insertar en la tabla intermedia
-        $comida->ingredientes()->attach($request->ingrediente_id, [
-            'cantidad' => $request->cantidad,
-            'unidad' => $request->unidad
-        ]);
-
-        return response()->json(['message' => 'Ingrediente añadido a la comida'], 200);
-    }
-
-    /**
-     * Actualizar datos básicos de la comida.
-     */
-    public function update(Request $request, $id): JsonResponse
-    {
-        $comida = Comida::findOrFail($id);
-        $comida->update($request->all());
-
-        return response()->json($comida, 200);
-    }
-
-    /**
-     * Eliminar una comida del catálogo.
-     */
-    public function destroy($id): JsonResponse
-    {
-        $comida = Comida::findOrFail($id);
-        $comida->delete();
-
-        return response()->json(['message' => 'Comida eliminada'], 200);
+        return response()->json(Comida::with('ingredientes')->findOrFail($id), 200);
     }
 }

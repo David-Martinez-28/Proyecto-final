@@ -20,7 +20,7 @@ class UserFactory extends Factory
             'role' => 'paciente',
             'remember_token' => Str::random(10),
             // Genera una imagen con fondo aleatorio y la inicial del nombre
-            'avatar' => 'https://ui-avatars.com/api/?background=random&color=fff&name=' . urlencode($name),
+            'imagen' => 'https://ui-avatars.com/api/?background=random&color=fff&name=' . urlencode($name),
         ];
     }
 

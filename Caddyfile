@@ -1,13 +1,19 @@
 :80 {
-  root * /var/www/public
-  encode gzip zstd
+    # 1. Rutas de API: envía todo a index.php de Laravel
+    route /api/* {
+        root * /var/www/public
+        # El punto clave es este bloque de php_fastcgi
+        php_fastcgi php:9000 {
+            index index.php
+        }
+    }
 
-  php_fastcgi php:9000
-  file_server
+    # 2. Archivos estáticos
+    route /storage/* {
+        root * /var/www/public
+        file_server
+    }
 
-  # Opcional: seguridad básica
-  # header {
-  #   X-Content-Type-Options nosniff
-  #   X-Frame-Options DENY
-  # }
+    # 3. Frontend
+    reverse_proxy react:5173
 }

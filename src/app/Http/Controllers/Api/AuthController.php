@@ -13,91 +13,92 @@ use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+   public function register(Request $request)
     {
-        // 1. Validaciones dinámicas
+        // 1. Validaciones
         $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|string|email|max:255|unique:users',
-            'password'     => 'required|string|min:8',
-            'role'         => 'required|in:dietista,paciente',
-            'especialidad' => 'required_if:role,dietista|string',
-            'nick'         => 'required_if:role,paciente|string|unique:pacientes,nick',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:usuarios,email',
+            'password' => 'required|string|min:8',
+            'role'     => 'required|in:dietista,paciente',
+            'nick'     => 'required_if:role,paciente|string|unique:pacientes,nick',
         ]);
 
-        // 2. SEGURIDAD: Si intentan crear un paciente, verificamos al dietista PRIMERO
-        $dietistaId = null;
-        if ($request->role === 'paciente') {
-            // Usamos auth('sanctum') para forzar la lectura del token en una ruta pública
-            $userLogueado = auth('sanctum')->user();
-            
-            if (!$userLogueado || $userLogueado->role !== 'dietista') {
-                throw ValidationException::withMessages([
-                    'error' => ['Acceso denegado. Solo un dietista puede registrar pacientes.'],
+        try {
+            \DB::beginTransaction();
+
+            $dietistaAutenticado = auth('sanctum')->user();
+
+            // 2. Crear usuario base
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+                'role'     => $request->role,
+                'imagen' => 'https://ui-avatars.com/api/?background=random&color=fff&name=' . urlencode($request->name),
+            ]);
+    
+            // 3. Lógica según rol
+            if ($request->role === 'paciente') {
+                // Verificamos si el dietista tiene perfil creado
+                if (!$dietistaAutenticado || !$dietistaAutenticado->dietista) {
+                    \DB::rollBack();
+                    return response()->json(['error' => 'El dietista logueado no tiene un perfil configurado.'], 400);
+                }
+
+                Paciente::create([
+                    'user_id'     => $user->id,
+                    'dietista_id' => $dietistaAutenticado->dietista->id,
+                    'nick'        => $request->nick,
+                ]);
+            } else {
+                Dietista::create([
+                    'user_id'      => $user->id,
+                    'especialidad' => $request->especialidad ?? 'General',
+                    'num_colegiado' => $request->num_colegiado ?? null,
                 ]);
             }
-            $dietistaId = $userLogueado->dietista->id;
-        }
 
-        // 3. Ahora sí, creamos el usuario base de forma segura
-        $user = clone new User(); // Evitamos conflictos si tu modelo se llama distinto
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' =>Hash::make($request->password),
-            'role'     => $request->role,
-            'avatar'   => 'https://ui-avatars.com/api/?background=random&color=fff&name=' . urlencode($request->name),
+            \DB::commit();
+            return response()->json(['message' => 'Usuario registrado con éxito', 'user' => $user], 201);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Error en registro: ' . $e->getMessage());
+            return response()->json(['error' => 'Error interno al registrar el usuario'], 500);
+        }
+    }
+   public function login(Request $request)
+{
+    $request->validate([
+        'email'    => 'required|email',
+        'password' => 'required',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        throw ValidationException::withMessages([
+            'email' => ['Las credenciales son incorrectas.'],
         ]);
-
-        // 4. Crear el perfil específico
-        if ($request->role === 'dietista') {
-            Dietista::create([
-                'user_id'       => $user->id,
-                'especialidad'  => $request->especialidad ?? 'General',
-                'num_colegiado' => 'TEMP-' . time(),
-            ]);
-        } else if ($request->role === 'paciente') {
-            Paciente::create([
-                'user_id'     => $user->id,
-                'dietista_id' => $dietistaId, // Ya lo hemos validado arriba
-                'nick'        => $request->nick,
-            ]);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'access_token' => $token,
-            'token_type'   => 'Bearer',
-            'user'         => $user->load($request->role === 'dietista' ? 'dietista' : 'paciente'),
-        ], 201);
     }
 
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
-        ]);
+    $user->tokens()->delete();
+    $token = $user->createToken('auth_token')->plainTextToken;
 
-        $user = User::where('email', $request->email)->first();
+    // --- CORRECCIÓN AQUÍ ---
+    // Determinamos la relación a cargar
+    $relation = $user->role === 'paciente' ? 'paciente' : 'dietista';
+    
+    // Carga de forma segura
+    $user->loadMissing($relation); 
 
-        // Manejo apropiado de errores y gestión de excepciones
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Las credenciales son incorrectas.'],
-            ]);
-        }
-
-        $user->tokens()->delete();
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'access_token' => $token,
-            'token_type'   => 'Bearer',
-            'user'         => $user->load($user->role === 'paciente' ? 'paciente' : 'dietista'),
-        ]);
-    }
+    return response()->json([
+        'access_token' => $token,
+        'token_type'   => 'Bearer',
+        'user'         => $user,
+    ]);
+}
 
     public function logout(Request $request)
     {

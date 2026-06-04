@@ -21,11 +21,13 @@ class Comida extends Model
     /**
      * Relación: Una comida tiene muchos ingredientes.
      */
-    public function ingredientes()
-    {
-        return $this->belongsToMany(Ingrediente::class, 'comida_ingrediente')
-                    ->withPivot('cantidad', 'unidad');
-    }
+    // En Comida.php
+public function ingredientes()
+{
+    return $this->belongsToMany(Ingrediente::class, 'comida_ingrediente')
+                ->withPivot('cantidad', 'unidad') // <--- Esto es vital
+                ->withTimestamps();
+}
 
     /**
      * Relación: Una comida pertenece a los planes de muchos usuarios.
