@@ -90,7 +90,10 @@ class PacienteController extends Controller
     /**
      * Obtener el plan del paciente autenticado (Ruta pública para el rol Paciente: /api/mi-plan).
      */
-    public function obtenerPlan()
+    /**
+     * Obtener el plan del paciente autenticado (Ruta pública para el rol Paciente: /api/mi-plan).
+     */
+   public function obtenerPlan()
 {
     $user = auth()->user();
 
@@ -98,31 +101,40 @@ class PacienteController extends Controller
         return response()->json(['error' => 'Perfil de paciente no encontrado o no autorizado'], 404);
     }
 
-    $plan = $user->paciente->load([
-        'comidas' => function ($q) {
-            $q->withPivot('dia_semana', 'momento', 'estado')
-                ->with(['ingredientes' => function ($query) {
-                    // 👇 CARGAMOS LA RELACIÓN INTERMEDIA DE LOS INGREDIENTES
-                    $query->withPivot('cantidad', 'unidad'); 
-                }])
-                ->orderBy('paciente_comida.dia_semana')
-                ->orderBy('paciente_comida.momento');
-        },
-        'rutinas' => function ($q) {
-            $q->withPivot('fecha_inicio', 'fecha_fin');
-        },
-        'rutinas.ejercicios',
-        'dietista.user' => function ($query) {
-            $query->select('id', 'name', 'email');
-        },
-        'estadisticas',
-        'user' 
-    ]);
+    try {
+        $plan = $user->paciente->load([
+            'comidas' => function ($q) {
+                $q->withPivot('dia_semana', 'momento', 'estado');
+                $q->orderBy('dia_semana', 'asc');
+            },
+            'comidas.ingredientes' => function ($query) {
+                // ⚠️ CORREGIDO: Cambiado 'amount' por 'cantidad' para que coincida con tu MySQL
+                $query->withPivot('cantidad', 'unidad'); 
+            },
+            'rutinas' => function ($q) {
+                $q->withPivot('fecha_inicio', 'fecha_fin');
+            },
+            'rutinas.ejercicios',
+            'dietista.user' => function ($query) {
+                $query->select('id', 'name', 'email');
+            },
+            'estadisticas',
+            'user' 
+        ]);
 
-    return response()->json([
-        'status' => 'success',
-        'data' => $plan
-    ], 200);
+        return response()->json([
+            'status' => 'success',
+            'data' => $plan
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error al procesar el plan en la base de datos de NutriPanel',
+            'error_sql' => $e->getMessage(),
+            'linea' => $e->getLine()
+        ], 500);
+    }
 }
 
     /**

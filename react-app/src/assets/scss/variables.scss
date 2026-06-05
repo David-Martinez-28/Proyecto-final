@@ -1,16 +1,39 @@
-// src/styles/_variables.scss
+/* ==========================================================================
+   NUTRIPANEL - PALETA DE COLORES Y VARIABLES GLOBALES
+   ========================================================================== */
+:root {
+    /* Colores Principales */
+    --color-primary: #0d6efd;       /* Azul Principal (Botones, cabeceras, enlaces) */
+    --color-primary-hover: #0b5ed7; /* Azul Oscuro para estados Hover */
+    --color-primary-light: #e7f1ff; /* Azul muy claro para fondos o alertas */
 
-// 1. COLORES DE LA MARCA
-$primary: #198754;   // Tu verde característico (sobrescribe el azul por defecto de Bootstrap)
-$danger: #dc3545;    // El rojo para las rutinas
-$background: #f8f9fa; // Un gris muy clarito para el fondo de la app
+    /* Colores Secundarios */
+    --color-secondary: #198754;     /* Verde Nutrición (Éxitos, dietas activas, badges) */
+    --color-secondary-hover: #157347;/* Verde Oscuro Hover */
+    --color-secondary-light: #d1e7dd;/* Verde muy claro para celdas o filas */
 
-// 2. MODIFICAMOS COMPONENTES GLOBALES DE BOOTSTRAP
-// Hacemos que todas las tarjetas, botones y modales sean más redondeados
-$border-radius: 1rem;
-$border-radius-sm: 0.5rem;
-$border-radius-lg: 1.5rem;
+    /* Colores de Estado y Neutros */
+    --color-danger: #dc3545;        /* Rojo (Cancelaciones, rechazos, errores) */
+    --color-danger-light: #f8d7da;  /* Rojo claro para recuadros de advertencia */
+    --color-warning: #ffc107;       /* Amarillo (Citas pendientes) */
+    
+    --color-dark: #212529;          /* Gris casi negro para textos principales */
+    --color-muted: #6c757d;         /* Gris medio para textos secundarios o subtítulos */
+    --color-bg-light: #f8f9fa;      /* Fondo gris claro para contenedores o menús laterales */
+    --color-white: #ffffff;         /* Blanco puro */
 
-// 3. SOMBRAS
-$box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-$box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    /* Tipografía y Estructura */
+    --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --border-radius-lg: 1rem;       /* 16px - Para tarjetas (rounded-4 en Bootstrap) */
+    --border-radius-md: 0.5rem;     /* 8px - Para botones e inputs */
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --transition-smooth: all 0.2s ease-in-out;
+}
+
+/* Base de la Aplicación */
+body {
+    font-family: var(--font-main);
+    color: var(--color-dark);
+    background-color: #f4f6f9; /* Fondo general sutilmente gris para resaltar las tarjetas */
+}

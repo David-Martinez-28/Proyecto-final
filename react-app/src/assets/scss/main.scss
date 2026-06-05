@@ -1,252 +1,146 @@
-// --- Variables Globales ---
-:root {
-    --primary-gradient: linear-gradient(135deg, #3899c5, #1c56d4);
-    --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    --border-radius-main: 24px;
-    --background: var(--background); 
-    --navbar_fondo: #667eea;
-}
-body {
-    background: var(--background);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
+/* ==========================================================================
+   ESTILOS COMPLEMENTARIOS PARA EL NAV Y COMPONENTES DINÁMICOS
+   ========================================================================== */
+
+/* Contenedor general de pestañas (Nav en React-Bootstrap) */
+
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+    gap: 0.25rem;
 }
 
-// --- Estilos de Login ---
-.login-container {
-    background: var(--background);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-
-    .card-login {
-        border-radius: var(--border-radius-main);
-        box-shadow: var(--card-shadow);
-        padding: 2.5rem;
-
-        .card-body {
-            gap: 1.5rem;
-            display: flex;
-            flex-direction: column;
-        }
-    }
-
-    .form-group {
-        margin-bottom: 1.25rem;
-    }
-
-    .btn-primary {
-        background: var(--primary-gradient);
-        border: none;
-        padding: 0.8rem;
-        font-size: 1.1rem;
-        margin-top: 1rem;
-    }
-
-    .form-control {
-        border-radius: 12px;
-        padding: 0.85rem 1rem;
-
-        &:focus {
-            box-shadow: 0 0 0 0.25rem rgba(118, 75, 162, 0.2);
-        }
-    }
-}
-
-// <--- Llave de cierre corregida para login-container
-
-// --- Estilos de Paciente ---
-.vista-paciente {
-    padding: 2rem;
-
-    .plan-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .historial-sidebar {
-        background: var(--background);
-        border-radius: 15px;
-        padding: 1rem;
-    }
-
-    .plan-grid-card {
-        border-radius: 20px;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-
-        .plan-table {
-            text-align: center;
-            vertical-align: middle;
-
-            td {
-                height: 80px;
-                transition: background 0.2s;
-            }
-
-            td:hover {
-                background: var(--background);
-                cursor: pointer;
-            }
-
-            .momento-label {
-                font-weight: bold;
-                text-transform: capitalize;
-                background: var(--background);
-            }
-        }
-    }
-}
-
-
-// --- Estilos de Dietista ---
-.dashboard-dietista {
-    padding: 2rem;
-    max-width: 1900px;
-    margin: 0 auto;
-    background: var(--background);
-
-    .header-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-
-    .form-card {
-        border: none;
-        box-shadow: var(--card-shadow);
-        border-radius: 20px;
-        padding: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .table-container {
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: var(--card-shadow);
-        background: var(--background);
-
-        table {
-            margin-bottom: 0;
-
-            thead {
-                background: var(--background);
-            }
-        }
-    }
-    
-}
-
-.comida-modal {
-    .modal-content {
-        border: none;
-        border-radius: 20px;
-        overflow: hidden; // Evita que los bordes internos se salgan
-        max-height: 90vh; // El modal nunca será más alto que el 90% de la pantalla
-        display: flex;
-        flex-direction: column;
-    }
-
-    .modal-header {
-        flex-shrink: 0; // Evita que el header se encoja
-    }
-
-    .modal-body {
-        overflow-y: auto; // Solo el cuerpo tendrá scroll si el texto es muy largo
-        padding: 1.5rem;
-
-        // Añade esto dentro de .modal-body
-        @media (max-width: 576px) {
-            padding: 1rem;
-
-            .imagen-wrapper img {
-                max-height: 180px;
-            }
-        }
-
-        .detalle-contenido {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .imagen-wrapper {
-            width: 100%;
-
-            img {
-                width: 100%;
-                max-height: 250px; // Altura fija para evitar imágenes gigantes
-                object-fit: cover; // Mantiene la proporción sin deformarse
-                border-radius: 15px;
-            }
-        }
-    }
-}
-.navbar {
-    // Corrección: usa 'background' para el gradiente
-    background: var(--navbar_fondo);
-    box-shadow: var(--card-shadow);
-    border-radius: 0 0 20px 20px;
-
-    .nav-link {
-        color: white; // Usamos blanco para que contraste con el fondo azul/gradiente
-        font-weight: 500;
-        transition: color 0.3s ease; // Suaviza el cambio de color
-
-        &:hover {
-            color: #f8f9fa; // Un color claro al pasar el ratón es más legible
-        }  
-    }
-}
-
-
-.botton-login {
-    background: var(--primary-gradient);
+/* Estilo base para cada pestaña/enlace individual */
+.nav-tabs .nav-link {
+    color: var(--color-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
     border: none;
-    padding: 0.8rem 1.5rem;
-    font-size: 1.1rem;
-    margin-top: 1rem;
-    color: white;
-    border-radius: 12px;
-
-    
+    border-bottom: 3px solid transparent;
+    padding: 0.6rem 1.2rem;
+    border-top-left-radius: var(--border-radius-md);
+    border-top-right-radius: var(--border-radius-md);
+    transition: var(--transition-smooth);
+    background: transparent;
 }
-.tabla-pacientes {
-    tr {
-        transition: background 0.2s;
-        box-shadow: var(--card-shadow);
 
-        &:hover {
-            background: var(--background);
-            cursor: pointer;
-        }
+/* Efecto hover al pasar el ratón por encima de pestañas inactivas */
+.nav-tabs .nav-link:hover {
+    color: var(--color-primary);
+    border-color: transparent;
+    background-color: var(--color-primary-light);
+}
+
+/* Estado Activo por defecto (Filtro general o pestaña activa principal) */
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+    color: var(--color-primary) !important;
+    background-color: var(--color-white);
+    border-bottom: 3px solid var(--color-primary);
+    font-weight: 700;
+}
+
+/* Pestaña dinámica enfocada en Éxito o Seguimiento (Ej: "✅ Confirmadas") */
+.nav-tabs .nav-link.text-success:hover {
+    background-color: var(--color-secondary-light);
+}
+.nav-tabs .nav-link.text-success.active {
+    color: var(--color-secondary) !important;
+    border-bottom-color: var(--color-secondary);
+}
+
+/* Pestaña dinámica enfocada en Espera o Alertas (Ej: "⏳ Pendientes") */
+.nav-tabs .nav-link.text-warning:hover {
+    background-color: #fff3cd;
+}
+.nav-tabs .nav-link.text-warning.active {
+    color: #856404 !important;
+    border-bottom-color: var(--color-warning);
+}
+
+/* Pestaña dinámica enfocada en Historial o Cancelados (Ej: "✖ Canceladas") */
+.nav-tabs .nav-link.text-muted:hover {
+    background-color: #e2e3e5;
+}
+.nav-tabs .nav-link.text-muted.active {
+    color: var(--color-dark) !important;
+    border-bottom-color: var(--color-muted);
+}
+
+/* Ajuste de padding e interactividad para los menús laterales (Ej: "Mis Dietas") */
+.list-group-item-action {
+    border: none !important;
+    padding: 0.75rem 1rem;
+    transition: var(--transition-smooth);
+}
+
+.list-group-item-action:hover {
+    background-color: var(--color-bg-light);
+    color: var(--color-primary);
+}
+
+
+/* ==========================================================================
+   🔥 NUEVO: CONTROL ESPECÍFICO PARA EL NAVEGADOR AZUL (bg-primary)
+   ========================================================================== */
+
+/* Enlaces del menú principal sobre fondo azul (Pantallas grandes) */
+@media (min-width: 768px) {
+    .bg-primary .nav-link {
+        color: rgba(255, 255, 255, 0.8) !important;
+        transition: var(--transition-smooth);
+    }
+
+    .bg-primary .nav-link:hover,
+    .bg-primary .nav-link:focus {
+        color: var(--color-white) !important;
+        background-color: rgba(255, 255, 255, 0.12);
+        border-radius: var(--border-radius-md);
+    }
+
+    /* Forzar que el título del NavDropdown en horizontal sea blanco */
+    .bg-primary .dropdown-toggle.nav-link {
+        color: rgba(255, 255, 255, 0.9) !important;
     }
 }
-.foto-perfil {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 50%;
-}
 
-.button {
-    background: white;
+/* Menú desplegable flotante de Gestión y Notificaciones */
+.bg-primary .dropdown-menu {
+    border-radius: var(--border-radius-md);
     border: none;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    color: #000;
-    border-radius: 12px ;
-    border: 1px solid blue;
-
-    &:hover {
-        background: #1c56d4; // Un tono más oscuro para el hover
-    }
+    box-shadow: var(--shadow-md);
+    margin-top: 0.5rem !important;
+    overflow: hidden;
 }
-.imagen-preview {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 15px;
+
+/* Elementos internos del desplegable */
+.bg-primary .dropdown-item {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-dark);
+    transition: var(--transition-smooth);
+}
+
+/* Hover adaptado a la guía sobre los elementos de la lista desplegable */
+.bg-primary .dropdown-item:hover {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-hover);
+}
+
+/* Estilo para la cabecera lateral móvil cuando se despliega el Offcanvas */
+.offcanvas .nav-link {
+    color: var(--color-dark) !important;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+}
+
+.offcanvas .nav-link:hover {
+    background-color: var(--color-bg-light);
+    color: var(--color-primary) !important;
+}
+
+/* Asegurar el contraste de los separadores de Dropdown */
+.dropdown-divider {
+    border-top: 1px solid #dee2e6;
+    margin: 0.25rem 0;
 }

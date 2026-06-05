@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\EjercicioController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\CitaController;
 use App\Http\Controllers\Api\UsuariosController;
+use App\Http\Controllers\Api\NotificacionController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -25,41 +27,46 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/update', [UsuariosController::class, 'update']);
     Route::delete('/user/delete', [UsuariosController::class, 'destroy']);
-    // Rutas de Citas
-    Route::post('/citas', [CitaController::class, 'store']); // Paciente pide cita
-    Route::get('/dietista/mis-citas', [CitaController::class, 'misCitas']); // Dietista ve citas
-    Route::post('/citas/{cita}/estado', [CitaController::class, 'actualizarEstado']); // Dietista actualiza
+    
+    // 💡 LAS TRASLADAMOS AQUÍ: Las rutas fijas y personalizadas de notificaciones siempre ARRIBA
+    Route::get('/notificaciones', [NotificacionController::class, 'index']);
+    Route::post('/notificaciones/{id}/leer', [NotificacionController::class, 'marcarComoLeida']);
+    
+    // --- RUTAS DE CITAS PERSONALIZADAS (Arriba del recurso) ---
+    Route::get('/dietista/mis-citas', [CitaController::class, 'misCitas']); 
+    Route::get('/paciente/mis-citas', [CitaController::class, 'misCitasPaciente']);
+    Route::post('/citas/{cita}/estado', [CitaController::class, 'actualizarEstado']); // Unificado (eliminado duplicado)
+    Route::post('/citas', [CitaController::class, 'store']); 
+    
     // Perfil del usuario autenticado
     Route::get('/user', function (Request $request) {
         return $request->user()->load($request->user()->role === 'paciente' ? 'paciente' : 'dietista');
     });
-    // Rutas de estadísticas
-    // Para guardar (la que ya tenías)
-    Route::post('/pacientes/estadisticas/{id?}', [PacienteController::class, 'guardarEstadistica']);
-
-    // --- AÑADE ESTA LÍNEA PARA PODER LEERLAS Y VER EL GRÁFICO ---
+    
+    // Rutas de estadísticas y evolución
     Route::get('/paciente/{id}/estadisticas', [PacienteController::class, 'getEstadisticasPaciente']);
-
-    // Rutas de estadísticas
-    // Para el paciente (propia) y para el dietista (especificando ID)
     Route::post('/pacientes/estadisticas/{id?}', [PacienteController::class, 'guardarEstadistica']);
+    
     // Subida de foto de perfil
     Route::post('/user/avatar', [AuthController::class, 'uploadAvatar']);
 
-    // Recursos API
+    // --- RECURSOS API (Abajo del todo para que sus comodines no pisen nada) ---
     Route::apiResource('dietistas', DietistaController::class);
     Route::apiResource('pacientes', PacienteController::class);
     Route::apiResource('comidas', ComidaController::class);
     Route::apiResource('rutinas', RutinaController::class);
-    Route::apiResource('ejercicios', EjercicioController::class); // Catálogo de ejercicios
+    Route::apiResource('ejercicios', EjercicioController::class); 
     Route::apiResource('ingredientes', IngredienteController::class);
-    Route::apiResource('citas', CitaController::class);
     Route::apiResource('usuarios', UsuariosController::class);
+    
+    // Excluimos 'store' de este resource porque ya lo declaramos manualmente arriba de forma específica
+    Route::apiResource('citas', CitaController::class)->except(['store']);
+    
     // --- ASIGNACIÓN DE RUTINAS (Bloques enteros) ---
     Route::post('/pacientes/{id}/asignar-rutina', [PacienteController::class, 'asignarRutina']);
     Route::delete('/pacientes/{id}/quitar-rutina/{rutina_id}', [PacienteController::class, 'quitarRutina']);
     
-    // --- ASIGNACIÓN DE EJERCICIOS EN LA CUADRÍCULA (Drag & Drop) 👇 AQUÍ ESTABAN LOS AUSENTES ---
+    // --- ASIGNACIÓN DE EJERCICIOS EN LA CUADRÍCULA (Drag & Drop) ---
     Route::post('/pacientes/{id}/asignar-ejercicio', [PacienteController::class, 'asignarEjercicio']);
     Route::delete('/pacientes/{id}/quitar-ejercicio', [PacienteController::class, 'quitarEjercicio']);
 
@@ -72,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // EL CORAZÓN DEL FRONTEND: El plan del paciente logueado
     Route::get('/mi-plan', [PacienteController::class, 'obtenerPlan']);
     Route::post('/pacientes/{id}/archivar-plan', [PacienteController::class, 'archivarPlan']);
+    
     // Logout
     Route::post('/logout', [AuthController::class, 'logout']);
 });

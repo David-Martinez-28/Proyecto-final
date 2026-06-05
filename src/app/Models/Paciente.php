@@ -25,11 +25,12 @@ class Paciente extends Model
     }
 
     // Relación con Comidas (Muchos a Muchos)
+    // app/Models/Paciente.php
     public function comidas()
     {
-        return $this->belongsToMany(Comida::class, 'paciente_comida', 'paciente_id', 'comida_id')
-            ->withPivot('dia_semana', 'momento', 'fecha_inicio', 'fecha_fin', 'estado')
-            ->withTimestamps();
+        return $this->belongsToMany(Comida::class, 'paciente_comida')
+                    ->withPivot('dia_semana', 'momento', 'estado')
+                    ->withTimestamps();
     }
 
 

@@ -9,7 +9,7 @@ class Cita extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['paciente_id', 'dietista_id', 'fecha_hora', 'estado', 'motivo'];
+    protected $fillable = ['paciente_id', 'dietista_id', 'fecha_hora', 'estado', 'motivo', 'motivo_cancelacion'];
 
     // Relación con el Paciente
     public function paciente() {

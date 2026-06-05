@@ -7,6 +7,8 @@ const VistaPaciente = () => {
     const { datosPlan, historialDietas, cargarMiPlan } = useClinica();
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
+    
+    // Estado local para alternar entre el Plan Actual y las dietas archivadas
     const [dietaVisualizada, setDietaVisualizada] = useState({ nombre: "Plan Actual", comidas: [] });
     const [comidaActiva, setComidaActiva] = useState(null);
     const [showDetalle, setShowDetalle] = useState(false);
@@ -18,17 +20,19 @@ const VistaPaciente = () => {
     const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     const momentos = ["desayuno", "almuerzo", "comida", "merienda", "cena"];
 
+    // Cálculo calórico e indicadores de rendimiento
     const caloriasMaximasDieta = datosPlan?.calorias_maximas || 2000;
     const caloriasTotalesSemana = dietaVisualizada.comidas.reduce((acc, comida) => acc + (Number(comida.calorias) || 0), 0);
     const promedioDiarioReal = (caloriasTotalesSemana / 7).toFixed(0);
 
+    // Cargar los datos del plan de salud al montar el componente
     useEffect(() => {
         const init = async () => {
             try {
                 setCargando(true);
                 await cargarMiPlan();
             } catch (err) {
-                setError("No se pudo cargar tu plan.");
+                setError("No se pudo cargar tu plan de salud.");
             } finally {
                 setCargando(false);
             }
@@ -36,26 +40,28 @@ const VistaPaciente = () => {
         init();
     }, [cargarMiPlan]);
 
+    // Sincronizar la dieta visualizada por defecto cuando se reciben los datos del servidor
     useEffect(() => {
         if (datosPlan?.comidas) {
             setDietaVisualizada({
                 nombre: "Plan Actual",
-                comidas: datosPlan.comidas.filter(c => c.pivot.estado !== 'archivada')
+                comidas: datosPlan.comidas.filter(c => c.pivot?.estado !== 'archivada')
             });
         }
     }, [datosPlan]);
 
+    // Helper para localizar qué comida va en cada celda de la tabla
     const obtenerPlatoCelda = (idx, momento) =>
-        dietaVisualizada.comidas.find(p => Number(p.pivot.dia_semana) === idx && p.pivot.momento === momento);
+        dietaVisualizada.comidas.find(p => Number(p.pivot?.dia_semana) === idx && p.pivot?.momento === momento);
 
+    // Generación del reporte en PDF horizontal
     const descargarPDF = () => {
         const elemento = pdfRef.current;
-        
         const opciones = {
             margin: 10,
             filename: `Plan_${dietaVisualizada.nombre.replace(/ /g, '_')}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
+            html2pdf: { 
                 scale: 2, 
                 useCORS: true,
                 logging: false,
@@ -63,32 +69,31 @@ const VistaPaciente = () => {
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
-
         html2pdf().set(opciones).from(elemento).save();
     };
 
-    if (cargando) return <div className="d-flex justify-content-center p-5"><Spinner animation="border" variant="success" /></div>;
+    if (cargando) return <div className="d-flex justify-content-center p-5"><Spinner animation="border" variant="primary" /></div>;
     if (error) return <Container className="p-4"><Alert variant="danger">{error}</Alert></Container>;
 
     return (
         <Container fluid className="vista-paciente px-3 py-4">
             
-            {/* CABECERA: TÍTULO CENTRADO Y BOTÓN A 1/4 (ALINEADO A LA DERECHA) */}
+            {/* --- CABECERA DE SEGUIMIENTO METABÓLICO --- */}
             <header className="plan-header mb-4">
                 <Row className="align-items-center g-3">
                     <Col md={3} className="d-none d-md-block"></Col>
                     
                     <Col xs={12} md={6} className="text-center">
-                        <h2 className="fw-bold mb-2">Mi Plan de Salud</h2>
+                        <h2 className="fw-bold mb-2 text-dark">Mi Plan de Salud</h2>
                         <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                            <Badge bg="dark" className="bg-opacity-75">Objetivo: {caloriasMaximasDieta} kcal</Badge>
-                            <Badge bg="primary">Semanal: {caloriasTotalesSemana.toLocaleString()} kcal</Badge>
-                            <Badge bg="info">Promedio: {promedioDiarioReal} kcal/día</Badge>
+                            <Badge bg="dark" className="bg-opacity-75 np-badge">Objetivo: {caloriasMaximasDieta} kcal</Badge>
+                            <Badge bg="primary" className="np-badge">Semanal: {caloriasTotalesSemana.toLocaleString()} kcal</Badge>
+                            <Badge bg="success" className="np-badge">Promedio: {promedioDiarioReal} kcal/día</Badge>
                         </div>
                     </Col>
                     
                     <Col xs={12} md={3} className="text-end">
-                        <Button className="fw-bold px-4 py-2 shadow-sm w-100" onClick={descargarPDF}>
+                        <Button variant="primary" className="fw-bold px-4 py-2 shadow-sm w-100" onClick={descargarPDF}>
                             Descargar Plan en PDF
                         </Button>
                     </Col>
@@ -96,25 +101,44 @@ const VistaPaciente = () => {
             </header>
 
             <Row className="g-4">
+                {/* --- MENÚ LATERAL: HISTORIAL DE DIETAS (VERDE NUTRICIÓN) --- */}
                 <Col xs={12} lg={2}>
-                    <div className="bg-light p-3 rounded-4 mb-3 mb-lg-0">
+                    <div className="bg-light p-3 rounded-4 mb-3 mb-lg-0 border-top border-success border-4 shadow-sm">
                         <h6 className="fw-bold text-success mb-3 px-1">Mis Dietas</h6>
-                        <ListGroup variant="flush" className="rounded-3 shadow-sm">
-                            <ListGroup.Item action className="fw-bold" onClick={() => setDietaVisualizada({ nombre: "Plan Actual", comidas: datosPlan?.comidas?.filter(c => c.pivot.estado !== 'archivada') || [] })}>Plan Actual</ListGroup.Item>
+                        <ListGroup variant="flush" className="rounded-3 overflow-hidden">
+                            <ListGroup.Item 
+                                action 
+                                className={`fw-bold small ${dietaVisualizada.nombre === 'Plan Actual' ? 'text-success bg-success bg-opacity-10' : ''}`}
+                                onClick={() => setDietaVisualizada({ 
+                                    nombre: "Plan Actual", 
+                                    comidas: datosPlan?.comidas?.filter(c => c.pivot?.estado !== 'archivada') || [] 
+                                })}
+                            >
+                                Plan Actual
+                            </ListGroup.Item>
                             {Object.keys(historialDietas || {}).map(p => (
-                                <ListGroup.Item action key={p} className="small text-muted" onClick={() => setDietaVisualizada({ nombre: p, comidas: historialDietas[p] })}>{p.replace("Plan cerrado el ", "")}</ListGroup.Item>
+                                <ListGroup.Item 
+                                    action 
+                                    key={p} 
+                                    className={`small fw-medium ${dietaVisualizada.nombre === p ? 'text-success bg-success bg-opacity-10' : 'text-muted'}`}
+                                    onClick={() => setDietaVisualizada({ nombre: p, comidas: historialDietas[p] })}
+                                >
+                                    {p.replace("Plan cerrado el ", "")}
+                                </ListGroup.Item>
                             ))}
                         </ListGroup>
                     </div>
                 </Col>
 
+                {/* --- CONTENIDO PRINCIPAL: CUADRÍCULA NUTRICIONAL --- */}
                 <Col xs={12} lg={10}>
-                    {/* VISTA EN PANTALLA RECTIFICADA */}
                     <div className="p-3 bg-white shadow-sm rounded-4">
+                        {/* Tabla para pantallas grandes (Ordenadores y tablets) */}
                         <div className="d-none d-md-block">
                             <TablaNutricional momentos={momentos} diasSemana={diasSemana} obtenerPlato={obtenerPlatoCelda} titulo={dietaVisualizada.nombre} setComida={setComidaActiva} setShow={setShowDetalle} />
                         </div>
 
+                        {/* Vista de tarjetas apiladas para dispositivos móviles */}
                         <div className="d-block d-md-none mobile-diet-view">
                             <h5 className="fw-bold text-success mb-3 text-center">{dietaVisualizada.nombre}</h5>
                             {diasSemana.map((dia, diaIdx) => (
@@ -124,7 +148,12 @@ const VistaPaciente = () => {
                                         {momentos.map(m => {
                                             const p = obtenerPlatoCelda(diaIdx, m);
                                             return (
-                                                <ListGroup.Item key={m} className={`d-flex justify-content-between align-items-center py-3 ${p ? 'bg-success bg-opacity-10' : ''}`} onClick={() => p && (setComidaActiva(p), setShowDetalle(true))}>
+                                                <ListGroup.Item 
+                                                    key={m} 
+                                                    className={`d-flex justify-content-between align-items-center py-3 ${p ? 'bg-success bg-opacity-10' : ''}`} 
+                                                    onClick={() => p && (setComidaActiva(p), setShowDetalle(true))}
+                                                    style={{ cursor: p ? 'pointer' : 'default' }}
+                                                >
                                                     <div className="text-capitalize fw-semibold text-muted small">{m}</div>
                                                     <div className="text-end">
                                                         {p ? (
@@ -145,72 +174,95 @@ const VistaPaciente = () => {
                         </div>
                     </div>
 
-                    {/* SECCIÓN DE RUTINAS */}
-                    <h4 className="fw-bold mt-5 mb-4 text-center text-md-start">Mis Rutinas Activas</h4>
+                    {/* --- SECCIÓN DE ENTRENAMIENTO (AZUL DEPORTE) --- */}
+                    <h4 className="fw-bold mt-5 mb-4 text-center text-md-start text-dark">Mis Rutinas Activas</h4>
                     <Row className="g-4">
-                        {datosPlan?.rutinas?.map((rutina) => (
-                            <Col xs={12} sm={6} md={4} key={rutina.id}>
-                                <Card className="h-100 border-0 shadow-sm rounded-4 border-bottom border-primary border-4">
-                                    <Card.Body>
-                                        <Card.Title className="fw-bold text-primary">{rutina.nombre}</Card.Title>
-                                        <ListGroup variant="flush">
-                                            {rutina.ejercicios?.map(ej => (
-                                                <ListGroup.Item key={ej.id} action className="px-0 small" onClick={() => { setEjercicioActivo(ej); setShowModalEjercicio(true); }}>
-                                                    <span className="text-primary me-2">•</span>{ej.nombre}
-                                                </ListGroup.Item>
-                                            ))}
-                                        </ListGroup>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))}
+                        {datosPlan?.rutinas && datosPlan.rutinas.length === 0 ? (
+                            <Col xs={12}><Alert variant="info" className="text-center rounded-4">No tienes rutinas asignadas para este periodo.</Alert></Col>
+                        ) : (
+                            datosPlan?.rutinas?.map((rutina) => (
+                                <Col xs={12} sm={6} md={4} key={rutina.id}>
+                                    <Card className="h-100 border-0 shadow-sm rounded-4 border-bottom border-primary border-4 shadow-hover">
+                                        <Card.Body>
+                                            <Card.Title className="fw-bold text-primary mb-3">{rutina.nombre}</Card.Title>
+                                            <ListGroup variant="flush">
+                                                {rutina.ejercicios?.map(ej => (
+                                                    <ListGroup.Item 
+                                                        key={ej.id} 
+                                                        action 
+                                                        className="px-0 small d-flex align-items-center border-0 py-2" 
+                                                        onClick={() => { setEjercicioActivo(ej); setShowModalEjercicio(true); }}
+                                                    >
+                                                        <span className="text-primary me-2 fw-bold">✓</span> {ej.nombre}
+                                                    </ListGroup.Item>
+                                                ))}
+                                            </ListGroup>
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            ))
+                        )}
                     </Row>
                 </Col>
             </Row>
 
-            {/* CONTENEDOR OCULTO PARA IMPRESIÓN SIN RECORTE */}
+            {/* --- CONTENEDOR OCULTO CON ESTRUCTURA FIJA PARA EXPORTAR EL PDF --- */}
             <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
-                <div ref={pdfRef} style={{ width: '1000px', padding: '20px', background: 'white' }}>
-                    <div className="text-center mb-4">
-                        <h2 style={{ color: '#198754', fontWeight: 'bold' }}>Plan Nutricional</h2>
-                        <p>Paciente: {datosPlan?.user?.name || "Sin nombre"}</p>
+                <div ref={pdfRef} style={{ width: '1024px', padding: '30px', background: 'white' }}>
+                    <div className="text-center mb-4 border-bottom pb-3">
+                        <h2 style={{ color: '#198754', fontWeight: 'bold', marginBottom: '5px' }}>Plan de Alimentación StrongHell</h2>
+                        <h5 style={{ color: '#6c757d' }}>Seguimiento Nutricional Personalizado</h5>
                     </div>
                     <TablaNutricional momentos={momentos} diasSemana={diasSemana} obtenerPlato={obtenerPlatoCelda} titulo={dietaVisualizada.nombre} isPDF={true} />
                 </div>
             </div>
 
-            {/* MODALES DE DETALLE */}
+            {/* --- VENTANAS MODALES DE INFORMACIÓN EMERGENTE --- */}
             <ModalDetalleComida show={showDetalle} onHide={() => setShowDetalle(false)} comida={comidaActiva} maxCal={caloriasMaximasDieta} />
             <ModalEjercicio show={showModalEjercicio} onHide={() => setShowModalEjercicio(false)} ejercicio={ejercicioActivo} />
         </Container>
     );
 };
 
+// ============================================================================
+// COMPONENTE SECUNDARIO: TABLA NUTRICIONAL GENERAL (PALETA VERDE)
+// ============================================================================
 const TablaNutricional = ({ momentos, diasSemana, obtenerPlato, titulo, setComida, setShow, isPDF = false }) => (
-    <Card className="border-0 shadow-sm">
+    <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
         <Card.Header className="bg-success text-white py-3 border-0">
             <h5 className="mb-0 fw-bold">{titulo}</h5>
         </Card.Header>
         <Table bordered className="mb-0 text-center align-middle" style={{ tableLayout: 'fixed', width: '100%' }}>
             <thead className="table-light">
                 <tr>
-                    <th style={{ width: '100px' }}>Horario</th>
-                    {diasSemana.map(d => <th key={d}>{d.substring(0, 3)}</th>)}
+                    <th style={{ width: '110px', fontSize: '13px' }}>Horario</th>
+                    {diasSemana.map(d => <th key={d} className="fw-bold" style={{ fontSize: '13px' }}>{d.substring(0, 3)}</th>)}
                 </tr>
             </thead>
             <tbody>
                 {momentos.map(m => (
-                    <tr key={m} style={{ height: '75px' }}>
-                        <td className="text-muted text-capitalize fw-semibold bg-light small">{m}</td>
+                    <tr key={m} style={{ height: '80px' }}>
+                        <td className="text-muted text-capitalize fw-semibold bg-light small" style={{ fontSize: '12px' }}>{m}</td>
                         {diasSemana.map((_, i) => {
                             const p = obtenerPlato(i, m);
                             return (
                                 <td key={i} 
                                     onClick={() => !isPDF && p && (setComida(p), setShow(true))} 
-                                    className={p ? "bg-success bg-opacity-10" : ""}
-                                    style={{ fontSize: isPDF ? '10px' : 'inherit' }}
+                                    className={p ? "bg-success bg-opacity-10 target-celda" : ""}
+                                    style={{ 
+                                        fontSize: isPDF ? '10px' : '13px', 
+                                        cursor: (p && !isPDF) ? 'pointer' : 'default',
+                                        transition: 'background 0.2s'
+                                    }}
                                 >
-                                    {p ? <div><div className="fw-bold text-success small">{p.nombre}</div><Badge bg="success" style={{fontSize: '9px'}}>{p.calorias} kcal</Badge></div> : "-"}
+                                    {p ? (
+                                        <div>
+                                            <div className="fw-bold text-success text-truncate mb-1">{p.nombre}</div>
+                                            <Badge bg="success" style={{ fontSize: '9px', padding: '4px 6px' }}>{p.calorias} kcal</Badge>
+                                        </div>
+                                    ) : (
+                                        <span className="text-black-50">-</span>
+                                    )}
                                 </td>
                             );
                         })}
@@ -221,76 +273,89 @@ const TablaNutricional = ({ momentos, diasSemana, obtenerPlato, titulo, setComid
     </Card>
 );
 
+// ============================================================================
+// COMPONENTE SECUNDARIO: MODAL DETALLE DE COMIDAS, RECETAS E INGREDIENTES
+// ============================================================================
 const ModalDetalleComida = ({ show, onHide, comida, maxCal }) => (
-    <Modal show={show} onHide={onHide} size="lg" centered>
-        <Modal.Header closeButton><Modal.Title className="fw-bold text-success">{comida?.nombre}</Modal.Title></Modal.Header>
-        <Modal.Body>
-            {comida?.imagen && <img src={comida.imagen} className="img-fluid mb-3 rounded-4 shadow-sm mx-auto d-block" style={{maxHeight: '240px', objectFit: 'cover'}} alt="Comida" />}
-            <Row className="g-3 mb-3 text-center">
-                <Col xs={6}><Card className="bg-success bg-opacity-10 p-2"><span>Plato</span><span className="fw-bold">{comida?.calorias} kcal</span></Card></Col>
-                <Col xs={6}><Card className="bg-danger bg-opacity-10 p-2"><span>Máximo</span><span className="fw-bold">{maxCal} kcal</span></Card></Col>
+    <Modal show={show} onHide={onHide} size="lg" centered className="rounded-4">
+        <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-bold text-success fs-4">{comida?.nombre}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3">
+            {comida?.imagen && (
+                <img 
+                    src={comida.imagen} 
+                    className="img-fluid mb-4 rounded-4 shadow-sm mx-auto d-block" 
+                    style={{ maxHeight: '250px', width: '100%', objectFit: 'cover' }} 
+                    alt="Plato nutricional" 
+                />
+            )}
+            <Row className="g-3 mb-4 text-center">
+                <Col xs={6}>
+                    <Card className="bg-success bg-opacity-10 border-0 p-3 rounded-3">
+                        <span className="text-muted small fw-medium">Calorías del Plato</span>
+                        <span className="fw-bold fs-5 text-success">{comida?.calorias} kcal</span>
+                    </Card>
+                </Col>
+                <Col xs={6}>
+                    <Card className="bg-danger bg-opacity-10 border-0 p-3 rounded-3">
+                        <span className="text-muted small fw-medium">Límite Diario</span>
+                        <span className="fw-bold fs-5 text-danger">{maxCal} kcal</span>
+                    </Card>
+                </Col>
             </Row>
-            <ProgressBar variant={ (comida?.calorias / maxCal) > 0.4 ? "warning" : "success" } now={(comida?.calorias / maxCal) * 100} className="mb-3" />
-            <h6>Descripción</h6><p className="small text-muted">{comida?.descripcion}</p>
-            <h6>Receta</h6><p className="small" style={{whiteSpace: 'pre-line'}}>{comida?.receta}</p>
-            <h6>Ingredientes</h6>
-            <ul>
-                {comida?.ingredientes?.map((ing, idx) => (
-                    <li key={idx} className="small">{ing.nombre} - {ing.pivot.cantidad} {ing.pivot.unidad}</li>
-                ))}
-            </ul>
-        </Modal.Body>
-    </Modal>
-);
-
-const ModalRegistrarMedidas = ({ show, onHide, paciente }) => (
-    <Modal show={show} onHide={onHide} centered>
-        <Modal.Header closeButton><Modal.Title className="fw-bold text-success">Registrar medidas para {paciente?.user?.name}</Modal.Title></Modal.Header>
-        <Modal.Body className="text-center pt-2 pb-4">
-            <h6 className="fw-bold mb-3 fs-5">{paciente?.user?.name}</h6>
             
-            <div className="bg-light rounded p-3 text-start">
-                <p className="mb-   1 text-muted small text-uppercase fw-bold">Motivo del paciente:</p>
-                <p className="mb-3">{paciente?.motivo_consulta || "No especificado"}</p>
-
-                <p className="mb-1 text-muted small text-uppercase fw-bold">Medidas actuales:</p>
-                <ul>
-                    <li className="small">Peso: {paciente?.peso} kg</li>
-                    <li className="small">Altura: {paciente?.altura} cm</li>
-                    <li className="small">Masa Muscular: {paciente?.masa_muscular} kg</li>
-                    <li className="small">Porcentaje Graso: {paciente?.porcentaje_graso} %</li>
+            <span className="text-muted small fw-bold text-uppercase d-block mb-1">Impacto calórico diario</span>
+            <ProgressBar 
+                variant={(comida?.calorias / maxCal) > 0.4 ? "warning" : "success"} 
+                now={Math.min((comida?.calorias / maxCal) * 100, 100)} 
+                className="mb-4 rounded-pill" 
+                style={{ height: '10px' }}
+            />
+            
+            <h6 className="fw-bold text-dark"><span className="text-success">■</span> Descripción del Menú</h6>
+            <p className="small text-muted mb-4 bg-light p-3 rounded-3">{comida?.descripcion || 'Sin descripción disponible.'}</p>
+            
+            <h6 className="fw-bold text-dark"><span className="text-success">■</span> Modo de Preparación</h6>
+            <p className="small text-secondary mb-4 bg-light p-3 rounded-3" style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>{comida?.receta || 'Consúltale a tu dietista los pasos detallados.'}</p>
+            
+            <h6 className="fw-bold text-dark mb-2"><span className="text-success">■</span> Macroingredientes y Cantidades</h6>
+            <div className="bg-light p-3 rounded-3">
+                <ul className="mb-0 ps-3">
+                    {comida?.ingredientes && comida.ingredientes.length === 0 ? (
+                        <li className="small text-muted">Ingredientes genéricos adaptados al pesaje objetivo.</li>
+                    ) : (
+                        comida?.ingredientes?.map((ing, idx) => (
+                            <li key={idx} className="small text-secondary mb-1">
+                                <strong className="text-dark">{ing.nombre}</strong> — {ing.pivot?.cantidad} {ing.pivot?.unidad}
+                            </li>
+                        ))
+                    )}
                 </ul>
-
-                <p className="mb-1 text-muted small text-uppercase fw-bold">Registrar nuevas medidas:</p>
-                {/* Aquí iría el formulario para registrar nuevas medidas */}
             </div>
         </Modal.Body>
     </Modal>
 );
 
-const ModalDetalleRutina = ({ show, onHide, rutina }) => (
-    <Modal show={show} onHide={onHide} centered>
-        <Modal.Header closeButton><Modal.Title className="fw-bold text-primary">{rutina?.nombre}</Modal.Title></Modal.Header>
-        <Modal.Body>
-            <h6>Ejercicios</h6>
-            <ListGroup variant="flush">
-                {rutina?.ejercicios?.map(ej => (
-                    <ListGroup.Item key={ej.id}>
-                        <span className="text-primary me-2">•</span>{ej.nombre}
-                        <p className="small text-muted">{ej.instrucciones}</p>
-                    </ListGroup.Item>
-                ))}
-            </ListGroup>    
-        </Modal.Body>
-    </Modal>
-);
-
+// ============================================================================
+// COMPONENTE SECUNDARIO: MODAL DE INSTRUCCIONES DE EJERCICIO (PALETA AZUL)
+// ============================================================================
 const ModalEjercicio = ({ show, onHide, ejercicio }) => (
-    <Modal show={show} onHide={onHide} centered>
-        <Modal.Header closeButton><Modal.Title className="fw-bold text-primary">{ejercicio?.nombre}</Modal.Title></Modal.Header>
-        <Modal.Body>
-            <p><strong>Grupo:</strong> <Badge bg="info">{ejercicio?.grupo_muscular}</Badge></p>
-            <h6>Instrucciones</h6><p className="small">{ejercicio?.instrucciones}</p>
+    <Modal show={show} onHide={onHide} centered className="rounded-4">
+        <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-bold text-primary fs-4">🏋️ {ejercicio?.nombre}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3 pb-4">
+            <div className="mb-3">
+                <span className="text-muted small fw-bold text-uppercase d-block mb-1">Grupo Muscular Focalizado:</span>
+                <Badge bg="primary" className="px-3 py-2 rounded-pill fw-bold text-uppercase np-badge">{ejercicio?.grupo_muscular || 'Cuerpo Completo'}</Badge>
+            </div>
+            <div>
+                <span className="text-muted small fw-bold text-uppercase d-block mb-1">Instrucciones de Ejecución técnica:</span>
+                <p className="small text-secondary bg-light p-3 rounded-3 mb-0" style={{ lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                    {ejercicio?.instrucciones || 'Realiza las series pautadas manteniendo una técnica controlada. Pregunta a tu entrenador si tienes dudas.'}
+                </p>
+            </div>
         </Modal.Body>
     </Modal>
 );

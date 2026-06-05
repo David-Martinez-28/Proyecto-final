@@ -48,4 +48,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Paciente::class, 'user_id');
     }
+    // En app/Models/User.php
+    public function notificaciones()
+    {
+        return $this->hasMany(Notificacion::class)->orderBy('created_at', 'desc');
+    }
 }

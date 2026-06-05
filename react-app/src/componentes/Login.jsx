@@ -64,38 +64,69 @@ const Login = () => {
     };
 
     return (
-        <Container fluid className="login-container">
-            <Card className="card-login" style={{ width: '100%', maxWidth: '420px' }}>
-                <Card.Body className="p-4">
-                    <h2 className="text-center fw-bold mb-4">{isRegister ? 'Crear Cuenta' : 'Bienvenido'}</h2>
-                    {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
-                    {successMsg && <Alert variant="success">{successMsg}</Alert>}
+        /* 🔥 CORREGIDO: Clases añadidas para centrar perfectamente la tarjeta en el medio de la pantalla */
+        <Container fluid className="d-flex align-items-center justify-content-center min-vh-100 bg-light login-container">
+            <Card className="card-login border-0 shadow-sm rounded-4 border-top border-4 overflow-hidden" 
+                  style={{ width: '100%', maxWidth: '420px', borderTopColor: isRegister ? 'var(--bs-success)' : 'var(--bs-primary)' }}>
+                <Card.Body className="p-4 bg-white">
+                    <h2 className="text-center fw-bold mb-4 text-dark">{isRegister ? 'Crear Cuenta' : 'Bienvenido'}</h2>
+                    
+                    {errorMsg && <Alert variant="danger" className="rounded-3 small fw-medium">{errorMsg}</Alert>}
+                    {successMsg && <Alert variant="success" className="rounded-3 small fw-medium">{successMsg}</Alert>}
                     
                     <Form onSubmit={handleFormSubmit}>
                         {isRegister && (
                             <>
-                                <Form.Group className="mb-3"><Form.Label>Nombre</Form.Label><Form.Control value={name} onChange={e => setName(e.target.value)} required /></Form.Group>
-                                <Form.Group className="mb-3"><Form.Label>Especialidad</Form.Label><Form.Control value={especialidad} onChange={e => setEspecialidad(e.target.value)} required /></Form.Group>
-                                <Form.Group className="mb-3"><Form.Label>Nº Colegiado</Form.Label><Form.Control value={numColegiado} onChange={e => setNumColegiado(e.target.value)} required /></Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold small text-secondary">Nombre</Form.Label>
+                                    <Form.Control value={name} onChange={e => setName(e.target.value)} required className="border-secondary-subtle" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold small text-secondary">Especialidad</Form.Label>
+                                    <Form.Control value={especialidad} onChange={e => setEspecialidad(e.target.value)} required className="border-secondary-subtle" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold small text-secondary">Nº Colegiado</Form.Label>
+                                    <Form.Control value={numColegiado} onChange={e => setNumColegiado(e.target.value)} required className="border-secondary-subtle" />
+                                </Form.Group>
                             </>
                         )}
-                        <Form.Group className="mb-3"><Form.Label>Email</Form.Label><Form.Control type="email" value={email} onChange={e => setEmail(e.target.value)} required /></Form.Group>
-                        <Form.Group className="mb-4"><Form.Label>Contraseña</Form.Label><Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
-                        <Button type="submit" className="w-100 py-2 botton-login">{isRegister ? 'Ir al Pago (50€)' : 'Iniciar Sesión'}</Button>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-semibold small text-secondary">Email</Form.Label>
+                            <Form.Control type="email" value={email} onChange={e => setEmail(e.target.value)} required className="border-secondary-subtle" />
+                        </Form.Group>
+                        <Form.Group className="mb-4">
+                            <Form.Label className="fw-semibold small text-secondary">Contraseña</Form.Label>
+                            <Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} required className="border-secondary-subtle" />
+                        </Form.Group>
+                        
+                        <Button type="submit" variant={isRegister ? "success" : "primary"} className="w-100 py-2 fw-bold shadow-sm botton-login">
+                            {isRegister ? 'Ir al Pago (50€)' : 'Iniciar Sesión'}
+                        </Button>
                     </Form>
-                    <div className="text-center mt-3 botton-login"><Button variant="link" onClick={toggleMode}>{isRegister ? '¿Ya tienes cuenta?' : '¿Nuevo dietista?'}</Button></div>
+                    
+                    <div className="text-center mt-3">
+                        <Button variant="link" onClick={toggleMode} className={`fw-semibold small text-decoration-none ${isRegister ? 'text-success' : 'text-primary'}`}>
+                            {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿Nuevo dietista? Regístrate'}
+                        </Button>
+                    </div>
                 </Card.Body>
             </Card>
 
-            <Modal show={showPayment} centered backdrop="static">
-                <Modal.Header><Modal.Title>Confirmar Pago</Modal.Title></Modal.Header>
-                <Modal.Body>
-                    <Button variant="success" className="w-100" onClick={handleRegister} disabled={isProcessing}>
-                        {isProcessing ? <Spinner size="sm" animation="border" /> : 'Pagar 50,00 €'}
+            {/* MODAL DE PAGO */}
+            <Modal show={showPayment} onHide={() => !isProcessing && setShowPayment(false)} centered backdrop="static" className="rounded-4">
+                <Modal.Header closeButton={!isProcessing} className="border-0 pb-0">
+                    <Modal.Title className="fw-bold text-success fs-5">Confirmar Pago</Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="pt-2 pb-4">
+                    <p className="text-muted small mb-4">Para activar tu cuenta profesional en NutriPanel, por favor confirma el pago de la tasa única de alta.</p>
+                    <Button variant="success" className="w-100 py-2 fw-bold shadow-sm" onClick={handleRegister} disabled={isProcessing}>
+                        {isProcessing ? <Spinner size="sm" animation="border" className="me-2" /> : 'Pagar 50,00 €'}
                     </Button>
                 </Modal.Body>
             </Modal>
         </Container>
     );
 };
+
 export default Login;
