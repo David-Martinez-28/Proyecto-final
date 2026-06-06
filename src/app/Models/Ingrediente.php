@@ -20,7 +20,13 @@ class Ingrediente extends Model
      * Los atributos que no son asignables masivamente.
      * @var array
      */
-    protected $guarded = [];
+    protected $fillable = [
+        'nombre',
+        'calorias',
+        'proteinas',
+        'grasas',
+        'carbohidratos',
+    ];
 
     /**
      * Relación: Un ingrediente puede estar presente en muchas comidas.

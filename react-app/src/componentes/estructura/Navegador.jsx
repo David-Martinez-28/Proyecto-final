@@ -20,7 +20,7 @@ const Navegador = () => {
         navigate('/');
     };
 
-    // Componente interno reutilizable para no repetir el marcado de Notificaciones y Perfil
+    // Componente interno para Notificaciones y Perfil (Mantiene consistencia móvil/escritorio)
     const MenuUsuario = ({ esMovil }) => (
         <div className={`align-items-center gap-3 ${esMovil ? 'd-flex d-md-none ms-auto me-2' : 'd-none d-md-flex ms-md-auto'}`}>
             {/* --- MENÚ DESPLEGABLE DE NOTIFICACIONES --- */}
@@ -34,7 +34,7 @@ const Navegador = () => {
                     )}
                 </Dropdown.Toggle>
 
-                <Dropdown.Menu style={{ width: '320px', maxHeight: '400px', overflowY: 'auto' }} className="shadow-lg border-0 mt-2 p-0 rounded-3 ">
+                <Dropdown.Menu style={{ width: '320px', maxHeight: '400px', overflowY: 'auto' }} className="shadow-lg border-0 mt-2 p-0 rounded-3">
                     <Dropdown.Header className="fw-bold border-bottom py-3 bg-light text-dark fs-6">Notificaciones Recientes</Dropdown.Header>
                     {!notificaciones || notificaciones.length === 0 ? (
                         <div className="text-muted text-center small py-4">No tienes mensajes nuevos</div>
@@ -99,18 +99,18 @@ const Navegador = () => {
         <Navbar expand="md" variant="dark" className="bg-primary shadow-sm mb-4 border-bottom border-primary-subtle sticky-top py-2 navegador">
             <Container fluid className="px-4 d-flex align-items-center justify-content-between">
 
+                {/* Enrutamiento dinámico en el logo según el rol del usuario */}
                 <Navbar.Brand as={Link} to={user?.role === 'dietista' ? '/admin/dashboard' : '/mi-plan'} onClick={handleClose} className="fw-bold fs-4 d-flex align-items-center text-white text-decoration-none">
                     <img src={miLogo} alt="Logo StrongHell" className="me-2" style={{ height: '50px', width: 'auto' }} />
                     <span className="text-white">StrongHell</span>
                 </Navbar.Brand>
 
-                {/* EN MÓVIL: Las notificaciones y el avatar se renderizan aquí, al lado de la hamburguesa */}
+                {/* EN MÓVIL: Las notificaciones y el avatar al lado de la hamburguesa */}
                 <MenuUsuario esMovil={true} />
 
                 <Navbar.Toggle aria-controls="offcanvas-navbar" onClick={handleShow} className="border-0 shadow-none" />
 
                 <Navbar.Offcanvas id="offcanvas-navbar" placement="start" show={showMenu} onHide={handleClose} className="bg-white">
-                    {/* 🔥 MODIFICADO: Añadido fondo bg-primary, texto blanco y botón de cierre claro */}
                     <Offcanvas.Header closeButton closeVariant="white" className="bg-primary text-white border-bottom border-primary-subtle py-3">
                         <Offcanvas.Title className="fw-bold fs-4 d-flex align-items-center">
                             <img src={miLogo} alt="Logo StrongHell" className="me-2" style={{ height: '40px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
@@ -121,13 +121,13 @@ const Navegador = () => {
                     <Offcanvas.Body className="pt-4 pt-md-0">
                         <Nav className="w-100 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 gap-md-0">
                             
-                            {/* --- BLOQUE DE ENLACES PRINCIPALES --- */}
                             <div className="d-flex flex-column flex-md-row gap-1 gap-md-2">
+                                {/* Enlace de inicio inteligente */}
                                 <Nav.Link as={Link} to={user?.role === 'dietista' ? '/admin/dashboard' : '/mi-plan'} onClick={handleClose} className="fw-semibold text-secondary text-md-white-50 px-2">
-                                    Inicio
+                                    {user?.role === 'dietista' ? 'Mis Pacientes' : 'Mi Plan'}
                                 </Nav.Link>
 
-                                {/* --- OPCIONES EXCLUSIVAS PARA EL PACIENTE --- */}
+                                {/* 👤 RUTAS EXCLUSIVAS PARA EL PACIENTE */}
                                 {user?.role === 'paciente' && (
                                     <>
                                         <Nav.Link as={Link} to="/paciente/pedir-cita" onClick={handleClose} className="fw-semibold text-secondary text-md-white-50 px-2">
@@ -139,23 +139,33 @@ const Navegador = () => {
                                     </>
                                 )}
 
-                                {/* --- OPCIONES EXCLUSIVAS PARA EL DIETISTA --- */}
+                                {/* 👨‍⚕️ RUTAS EXCLUSIVAS PARA EL DIETISTA */}
                                 {user?.role === 'dietista' && (
                                     <>
                                         <Nav.Link as={Link} to="/dietista/agenda" onClick={handleClose} className="fw-semibold text-secondary text-md-white-50 px-2">
                                             Agenda
                                         </Nav.Link>
-                                        <NavDropdown title="Gestión" id="nav-dropdown-dietista" className="fw-semibold px-1">
-                                            <NavDropdown.Item as={Link} to="/dietista/ejercicios" onClick={handleClose}>Crear Ejercicios</NavDropdown.Item>
-                                            <NavDropdown.Item as={Link} to="/dietista/ingredientes" onClick={handleClose}>Crear Ingredientes</NavDropdown.Item>
-                                            <NavDropdown.Item as={Link} to="/dietista/rutinas" onClick={handleClose}>Crear Rutinas</NavDropdown.Item>
-                                            <NavDropdown.Item as={Link} to="/dietista/comidas" onClick={handleClose}>Crear Comidas</NavDropdown.Item>
+
+                                        {/* DESPLEGABLE 1: ACCIONES DE ALTA / CREACIÓN */}
+                                        <NavDropdown title="Añadir al Catálogo" id="nav-dropdown-crear" className="fw-semibold px-1">
+                                            <NavDropdown.Item as={Link} to="/dietista/ejercicios" onClick={handleClose}>💪 Crear Ejercicio</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/dietista/ingredientes" onClick={handleClose}>🥝 Crear Ingrediente</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/dietista/rutinas" onClick={handleClose}>🏋️ Crear Rutina</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/dietista/comidas" onClick={handleClose}>🍳 Crear Comida</NavDropdown.Item>
+                                        </NavDropdown>
+
+                                        {/* DESPLEGABLE 2: ACCIONES DE CONSULTA / LISTADO */}
+                                        <NavDropdown title="Ver Catálogos" id="nav-dropdown-listar" className="fw-semibold px-1">
+                                            <NavDropdown.Item as={Link} to="/dietista/listar-ejercicios" onClick={handleClose}>📋 Listar Ejercicios</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/dietista/listar-ingredientes" onClick={handleClose}>📋 Listar Ingredientes</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/dietista/listar-rutinas" onClick={handleClose}>📋 Listar Rutinas</NavDropdown.Item>
+                                            <NavDropdown.Item as={Link} to="/dietista/listar-comidas" onClick={handleClose}>📋 Listar Comidas</NavDropdown.Item>
                                         </NavDropdown>
                                     </>
                                 )}
                             </div>
 
-                            {/* EN ESCRITORIO: Se muestra el bloque en su lugar original alineado a la derecha */}
+                            {/* EN ESCRITORIO: Se muestra el bloque del perfil alineado a la derecha */}
                             <MenuUsuario esMovil={false} />
 
                         </Nav>

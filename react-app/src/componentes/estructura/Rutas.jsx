@@ -1,15 +1,15 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Container, Spinner } from 'react-bootstrap';
-import {useAuth }  from '../../hooks/ApiLogin/useAuth';
+import { useAuth } from '../../hooks/ApiLogin/useAuth';
 
-// Importación de tus componentes y vistas
+// Importación de tus componentes y vistas base
 import Login from '../Login';
 import VistaDietista from '../VistaDietista';
 import VistaPaciente from '../VistaPaciente';
 import Navegador from './Navegador';
 import AsignarPlan from '../AsignarPlan';
-import AsignarRutina from '../AsignarRutina'; // O la ruta donde lo hayas guardado
+import AsignarRutina from '../AsignarRutina'; 
 import CrearEjercicio from '../paginas/CrearEjercicio';
 import CrearIngrediente from '../paginas/CrearIngrediente';
 import CrearRutina from '../paginas/CrearRutina';
@@ -17,19 +17,21 @@ import CrearComida from '../paginas/CrearComida';
 import SolicitarCita from '../SolicitarCita';
 import AgendaDietista from '../AgendaDietista';
 import EstadisticasPaciente from '../EstadisticasPaciente';
-import EvolucionCorporal from '../EvolucionCorporal';
 import Perfil from '../Perfil';
+
+// 🔥 NUEVAS IMPORTACIONES: Vistas de consulta e indexación de catálogos
+import ListarEjercicios from '../paginas/ListarEjercicios';
+import ListarIngredientes from '../paginas/ListarIngredientes';
+import ListarRutinas from '../paginas/ListarRutinas';
+import ListarComidas from '../paginas/ListarComidas';
 
 /**
  * 1. LAYOUT PROTEGIDO GLOBAL
- * Este componente envuelve a todas las rutas privadas.
- * Si el usuario no está logueado, lo echa al Login.
- * Si está logueado, le inyecta el <Navegador /> común arriba del todo.
+ * Si el usuario está logueado, le inyecta el <Navegador /> común arriba del todo.
  */
 const LayoutProtegido = () => {
     const { user, loading } = useAuth();
 
-    // Mientras el contexto comprueba si el token de localStorage es válido
     if (loading) {
         return (
             <Container className="d-flex flex-column justify-content-center align-items-center vh-100">
@@ -39,12 +41,10 @@ const LayoutProtegido = () => {
         );
     }
 
-    // Si terminó de cargar y no hay ningún usuario en el estado, redirige al Login público
     if (!user) {
         return <Navigate to="/" replace />;
     }
 
-    // Si hay usuario, pintamos el Navegador reutilizable y el contenido interno (Outlet)
     return (
         <div className="bg-light min-vh-100">
             <Navegador />
@@ -56,8 +56,6 @@ const LayoutProtegido = () => {
 /**
  * 2. GUARDA DE ROL
  * Controla que el usuario logueado tenga el rol permitido para esa URL.
- * Si un paciente intenta escribir "/admin/dashboard" a mano, este componente
- * lo detecta y lo redirige automáticamente a su zona correcta (" /mi-plan ").
  */
 const FiltroPorRol = ({ rolesPermitidos }) => {
     const { user } = useAuth();
@@ -77,41 +75,45 @@ const FiltroPorRol = ({ rolesPermitidos }) => {
 const Rutas = () => {
     return (
         <Routes>
-            {/* 🔓 RUTA PÚBLICA: Aquí el Navegador NO se renderiza */}
+            {/* 🔓 RUTA PÚBLICA */}
             <Route path="/" element={<Login />} />
 
-            {/* 🔒 RUTAS PRIVADAS ANIDADAS: Todas estas comparten el Navegador automáticamente */}
+            {/* 🔒 RUTAS PRIVADAS ANIDADAS */}
             <Route element={<LayoutProtegido />}>
-                // En tu archivo donde configuras las rutas (ej: Rutas.jsx)
                 
-                {/* SECCIÓN EXCLUSIVA: DIETISTAS */}
+                {/* 👨‍⚕️ SECCIÓN EXCLUSIVA: DIETISTAS */}
                 <Route element={<FiltroPorRol rolesPermitidos={['dietista']} />}>
                     <Route path="/admin/dashboard" element={<VistaDietista />} />
-                    {/* Nueva ruta dinámica para gestionar el plan semanal de cada paciente */}
                     <Route path="/dietista/paciente/:id/plan" element={<AsignarPlan />} />
                     <Route path="/dietista/paciente/:id/rutina" element={<AsignarRutina />} />
+                    <Route path="/dietista/agenda" element={<AgendaDietista />} />
+                    <Route path="/dietista/paciente/:id/estadisticas" element={<EstadisticasPaciente />} />
+                    
+                    {/* Formulación y Alta (Catálogos) */}
                     <Route path="/dietista/ejercicios" element={<CrearEjercicio />} />
                     <Route path="/dietista/ingredientes" element={<CrearIngrediente />} />
                     <Route path="/dietista/rutinas" element={<CrearRutina />} />
                     <Route path="/dietista/comidas" element={<CrearComida />} />
-                    <Route path="/dietista/agenda" element={<AgendaDietista />} />
-                    <Route path="/dietista/paciente/:id/estadisticas" element={<EstadisticasPaciente />} />
+                    
+                    {/* 🔥 NUEVAS RUTAS: Indexación y visualización de catálogos */}
+                    <Route path="/dietista/listar-ejercicios" element={<ListarEjercicios />} />
+                    <Route path="/dietista/listar-ingredientes" element={<ListarIngredientes />} />
+                    <Route path="/dietista/listar-rutinas" element={<ListarRutinas />} />
+                    <Route path="/dietista/listar-comidas" element={<ListarComidas />} />
                 </Route>
 
-                {/*  SECCIÓN EXCLUSIVA: PACIENTES */}
+                {/* 👤 SECCIÓN EXCLUSIVA: PACIENTES */}
                 <Route element={<FiltroPorRol rolesPermitidos={['paciente']} />}>
                     <Route path="/mi-plan" element={<VistaPaciente />} />
-                    {/* Nueva ruta activa para ver la receta e ingredientes del plato en grande */}
-                    
-                     {/* Nueva ruta para solicitar cita */}
-                     <Route path="/paciente/estadisticas" element={<EstadisticasPaciente />} />
+                    <Route path="/paciente/estadisticas" element={<EstadisticasPaciente />} />
                     <Route path="/paciente/pedir-cita" element={<SolicitarCita />} />
                 </Route>
-                    {/* RUTA DE PERFIL (ACCESIBLE PARA AMBOS ROLES) */}
-                    <Route path="/perfil" element={<Perfil />} />
+
+                {/* 👥 RUTA DE PERFIL (ACCESIBLE PARA AMBOS ROLES) */}
+                <Route path="/perfil" element={<Perfil />} />
             </Route>
 
-            {/* 🔄 REDIRECCIÓN POR DEFECTO: Si escriben cualquier otra cosa, al Login */}
+            {/* 🔄 REDIRECCIÓN POR DEFECTO */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );

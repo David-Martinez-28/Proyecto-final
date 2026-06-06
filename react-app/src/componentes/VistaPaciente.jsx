@@ -49,6 +49,7 @@ const VistaPaciente = () => {
             });
         }
     }, [datosPlan]);
+    console.log("Datos del Plan de Salud:", datosPlan);
 
     // Helper para localizar qué comida va en cada celda de la tabla
     const obtenerPlatoCelda = (idx, momento) =>
@@ -98,10 +99,28 @@ const VistaPaciente = () => {
                         </Button>
                     </Col>
                 </Row>
+
+                {/* 🔥 NUEVO: Bloque informativo visible en la Interfaz de Usuario para Paciente y Dietista */}
+                <Row className="mt-3 justify-content-center">
+                    <Col xs={12} md={8} lg={6}>
+                        <Card className="border-0 shadow-sm rounded-3 bg-white py-2 px-3">
+                            <Row className="text-center small text-secondary">
+                                <Col xs={6} className="border-end border-light-subtle">
+                                    <span className="d-block text-muted style-italic" style={{ fontSize: '11px' }}>Paciente Activo</span>
+                                    <strong className="text-dark fs-6">{datosPlan?.user?.name || 'Cargando...'}</strong>
+                                </Col>
+                                <Col xs={6}>
+                                    <span className="d-block text-muted style-italic" style={{ fontSize: '11px' }}>Dietista Asignado</span>
+                                    <strong className="text-dark fs-6">{datosPlan?.dietista?.user?.name || 'Profesional Asignado'}</strong>
+                                </Col>
+                            </Row>
+                        </Card>
+                    </Col>
+                </Row>
             </header>
 
             <Row className="g-4">
-                {/* --- MENÚ LATERAL: HISTORIAL DE DIETAS (VERDE NUTRICIÓN) --- */}
+                {/* --- MENÚ LATERAL: HISTORIAL DE DIETAS --- */}
                 <Col xs={12} lg={2}>
                     <div className="bg-light p-3 rounded-4 mb-3 mb-lg-0 border-top border-success border-4 shadow-sm">
                         <h6 className="fw-bold text-success mb-3 px-1">Mis Dietas</h6>
@@ -133,7 +152,7 @@ const VistaPaciente = () => {
                 {/* --- CONTENIDO PRINCIPAL: CUADRÍCULA NUTRICIONAL --- */}
                 <Col xs={12} lg={10}>
                     <div className="p-3 bg-white shadow-sm rounded-4">
-                        {/* Tabla para pantallas grandes (Ordenadores y tablets) */}
+                        {/* Tabla para pantallas grandes */}
                         <div className="d-none d-md-block">
                             <TablaNutricional momentos={momentos} diasSemana={diasSemana} obtenerPlato={obtenerPlatoCelda} titulo={dietaVisualizada.nombre} setComida={setComidaActiva} setShow={setShowDetalle} />
                         </div>
@@ -174,7 +193,7 @@ const VistaPaciente = () => {
                         </div>
                     </div>
 
-                    {/* --- SECCIÓN DE ENTRENAMIENTO (AZUL DEPORTE) --- */}
+                    {/* --- SECCIÓN DE ENTRENAMIENTO --- */}
                     <h4 className="fw-bold mt-5 mb-4 text-center text-md-start text-dark">Mis Rutinas Activas</h4>
                     <Row className="g-4">
                         {datosPlan?.rutinas && datosPlan.rutinas.length === 0 ? (
@@ -186,7 +205,7 @@ const VistaPaciente = () => {
                                         <Card.Body>
                                             <Card.Title className="fw-bold text-primary mb-3">{rutina.nombre}</Card.Title>
                                             <ListGroup variant="flush">
-                                                {rutina.ejercicios?.map(ej => (
+                                                {rutina.exercises?.map(ej => (
                                                     <ListGroup.Item 
                                                         key={ej.id} 
                                                         action 
@@ -208,16 +227,23 @@ const VistaPaciente = () => {
 
             {/* --- CONTENEDOR OCULTO CON ESTRUCTURA FIJA PARA EXPORTAR EL PDF --- */}
             <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
-                <div ref={pdfRef} style={{ width: '1024px', padding: '30px', background: 'white' }}>
-                    <div className="text-center mb-4 border-bottom pb-3">
-                        <h2 style={{ color: '#198754', fontWeight: 'bold', marginBottom: '5px' }}>Plan de Alimentación StrongHell</h2>
-                        <h5 style={{ color: '#6c757d' }}>Seguimiento Nutricional Personalizado</h5>
+                <div ref={pdfRef} style={{ width: '1024px', padding: '40px', background: 'white' }}>
+                    <div className="d-flex justify-content-between align-items-end mb-4 pb-3 border-bottom border-2" style={{ borderColor: '#198754' }}>
+                        <div>
+                            <h1 style={{ color: '#198754', fontWeight: 'bold', margin: '0 0 5px 0', fontSize: '28px' }}>StrongHell</h1>
+                            <p style={{ color: '#6c757d', margin: 0, fontSize: '14px', fontWeight: '500' }}>Reporte de Planificación Nutricional Integrada</p>
+                        </div>
+                        <div style={{ textAlign: 'right', fontSize: '12px', color: '#212529', lineHeight: '1.5' }}>
+                            <div><strong>Paciente:</strong> {datosPlan?.user?.name || 'Cargando...'}</div>
+                            <div><strong>Dietista:</strong> {datosPlan?.dietista?.user?.name || 'Profesional Asignado'}</div>
+                            <div><strong>Fecha de Emisión:</strong> {new Date().toLocaleDateString('es-ES')}</div>
+                        </div>
                     </div>
                     <TablaNutricional momentos={momentos} diasSemana={diasSemana} obtenerPlato={obtenerPlatoCelda} titulo={dietaVisualizada.nombre} isPDF={true} />
                 </div>
             </div>
 
-            {/* --- VENTANAS MODALES DE INFORMACIÓN EMERGENTE --- */}
+            {/* --- VENTANAS MODALES --- */}
             <ModalDetalleComida show={showDetalle} onHide={() => setShowDetalle(false)} comida={comidaActiva} maxCal={caloriasMaximasDieta} />
             <ModalEjercicio show={showModalEjercicio} onHide={() => setShowModalEjercicio(false)} ejercicio={ejercicioActivo} />
         </Container>
@@ -225,7 +251,7 @@ const VistaPaciente = () => {
 };
 
 // ============================================================================
-// COMPONENTE SECUNDARIO: TABLA NUTRICIONAL GENERAL (PALETA VERDE)
+// COMPONENTE SECUNDARIO: TABLA NUTRICIONAL GENERAL
 // ============================================================================
 const TablaNutricional = ({ momentos, diasSemana, obtenerPlato, titulo, setComida, setShow, isPDF = false }) => (
     <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
@@ -274,7 +300,7 @@ const TablaNutricional = ({ momentos, diasSemana, obtenerPlato, titulo, setComid
 );
 
 // ============================================================================
-// COMPONENTE SECUNDARIO: MODAL DETALLE DE COMIDAS, RECETAS E INGREDIENTES
+// COMPONENTE SECUNDARIO: MODAL DETALLE DE COMIDAS
 // ============================================================================
 const ModalDetalleComida = ({ show, onHide, comida, maxCal }) => (
     <Modal show={show} onHide={onHide} size="lg" centered className="rounded-4">
@@ -338,7 +364,7 @@ const ModalDetalleComida = ({ show, onHide, comida, maxCal }) => (
 );
 
 // ============================================================================
-// COMPONENTE SECUNDARIO: MODAL DE INSTRUCCIONES DE EJERCICIO (PALETA AZUL)
+// COMPONENTE SECUNDARIO: MODAL DE INSTRUCCIONES DE EJERCICIO
 // ============================================================================
 const ModalEjercicio = ({ show, onHide, ejercicio }) => (
     <Modal show={show} onHide={onHide} centered className="rounded-4">
@@ -353,7 +379,7 @@ const ModalEjercicio = ({ show, onHide, ejercicio }) => (
             <div>
                 <span className="text-muted small fw-bold text-uppercase d-block mb-1">Instrucciones de Ejecución técnica:</span>
                 <p className="small text-secondary bg-light p-3 rounded-3 mb-0" style={{ lineHeight: '1.6', whiteSpace: 'pre-line' }}>
-                    {ejercicio?.instrucciones || 'Realiza las series pautadas manteniendo una técnica controlada. Pregunta a tu entrenador si tienes dudas.'}
+                    {ejercicio?.descripcion || 'Realiza las series pautadas manteniendo una técnica controlada. Pregunta a tu entrenador si tienes dudas.'}
                 </p>
             </div>
         </Modal.Body>

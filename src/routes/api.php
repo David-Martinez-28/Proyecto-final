@@ -28,14 +28,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/update', [UsuariosController::class, 'update']);
     Route::delete('/user/delete', [UsuariosController::class, 'destroy']);
     
-    // 💡 LAS TRASLADAMOS AQUÍ: Las rutas fijas y personalizadas de notificaciones siempre ARRIBA
+    // Notificaciones (Siempre arriba)
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
     Route::post('/notificaciones/{id}/leer', [NotificacionController::class, 'marcarComoLeida']);
     
-    // --- RUTAS DE CITAS PERSONALIZADAS (Arriba del recurso) ---
+    // --- RUTAS DE CITAS PERSONALIZADAS ---
     Route::get('/dietista/mis-citas', [CitaController::class, 'misCitas']); 
     Route::get('/paciente/mis-citas', [CitaController::class, 'misCitasPaciente']);
-    Route::post('/citas/{cita}/estado', [CitaController::class, 'actualizarEstado']); // Unificado (eliminado duplicado)
+    Route::post('/citas/{cita}/estado', [CitaController::class, 'actualizarEstado']); 
     Route::post('/citas', [CitaController::class, 'store']); 
     
     // Perfil del usuario autenticado
@@ -50,7 +50,25 @@ Route::middleware('auth:sanctum')->group(function () {
     // Subida de foto de perfil
     Route::post('/user/avatar', [AuthController::class, 'uploadAvatar']);
 
-    // --- RECURSOS API (Abajo del todo para que sus comodines no pisen nada) ---
+    // --- 💡 RUTAS DE ASIGNACIÓN LÓGICA COPIADAS ARRIBA DE LOS RECURSOS ---
+    // Colocamos estas rutas aquí para que intercepten la lógica antes de que el comodín del apiResource intente capturar la URL
+    Route::post('/comidas/{comida}/agregar-ingrediente', [ComidaController::class, 'agregarIngrediente']);
+    Route::post('/rutinas/{rutina}/agregar-ejercicio', [RutinaController::class, 'agregarEjercicio']);
+
+    Route::post('/pacientes/{paciente}/asignar-comida', [PacienteController::class, 'asignarComida']);
+    Route::delete('/pacientes/{id}/quitar-comida', [PacienteController::class, 'quitarComida']);
+
+    Route::post('/pacientes/{id}/asignar-rutina', [PacienteController::class, 'asignarRutina']);
+    Route::delete('/pacientes/{id}/quitar-rutina/{rutina_id}', [PacienteController::class, 'quitarRutina']);
+    
+    Route::post('/pacientes/{id}/asignar-ejercicio', [PacienteController::class, 'asignarEjercicio']);
+    Route::delete('/pacientes/{id}/quitar-ejercicio', [PacienteController::class, 'quitarEjercicio']);
+
+    // EL CORAZÓN DEL FRONTEND: El plan del paciente logueado
+    Route::get('/mi-plan', [PacienteController::class, 'obtenerPlan']);
+    Route::post('/pacientes/{id}/archivar-plan', [PacienteController::class, 'archivarPlan']);
+
+    // --- RECURSOS API (Abajo del todo para evitar solapamientos) ---
     Route::apiResource('dietistas', DietistaController::class);
     Route::apiResource('pacientes', PacienteController::class);
     Route::apiResource('comidas', ComidaController::class);
@@ -58,27 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('ejercicios', EjercicioController::class); 
     Route::apiResource('ingredientes', IngredienteController::class);
     Route::apiResource('usuarios', UsuariosController::class);
-    
-    // Excluimos 'store' de este resource porque ya lo declaramos manualmente arriba de forma específica
     Route::apiResource('citas', CitaController::class)->except(['store']);
-    
-    // --- ASIGNACIÓN DE RUTINAS (Bloques enteros) ---
-    Route::post('/pacientes/{id}/asignar-rutina', [PacienteController::class, 'asignarRutina']);
-    Route::delete('/pacientes/{id}/quitar-rutina/{rutina_id}', [PacienteController::class, 'quitarRutina']);
-    
-    // --- ASIGNACIÓN DE EJERCICIOS EN LA CUADRÍCULA (Drag & Drop) ---
-    Route::post('/pacientes/{id}/asignar-ejercicio', [PacienteController::class, 'asignarEjercicio']);
-    Route::delete('/pacientes/{id}/quitar-ejercicio', [PacienteController::class, 'quitarEjercicio']);
-
-    // Rutas de asignación lógica
-    Route::post('/pacientes/{paciente}/asignar-comida', [PacienteController::class, 'asignarComida']);
-    Route::delete('/pacientes/{id}/quitar-comida', [PacienteController::class, 'quitarComida']);
-    Route::post('/rutinas/{rutina}/agregar-ejercicio', [RutinaController::class, 'agregarEjercicio']);
-    Route::post('/comidas/{comida}/agregar-ingrediente', [ComidaController::class, 'agregarIngrediente']);
-    
-    // EL CORAZÓN DEL FRONTEND: El plan del paciente logueado
-    Route::get('/mi-plan', [PacienteController::class, 'obtenerPlan']);
-    Route::post('/pacientes/{id}/archivar-plan', [PacienteController::class, 'archivarPlan']);
     
     // Logout
     Route::post('/logout', [AuthController::class, 'logout']);

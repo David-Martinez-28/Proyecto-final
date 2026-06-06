@@ -71,7 +71,13 @@ return new class extends Migration {
         Schema::create('ingredientes', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->decimal('kcal_por_100g', 8, 2);
+            
+            // 🔥 CORREGIDO: Renombrado a 'calorias' y agregados los tres macronutrientes pautados
+            $table->decimal('calorias', 8, 2)->default(0); 
+            $table->decimal('proteinas', 8, 2)->nullable()->default(0);
+            $table->decimal('grasas', 8, 2)->nullable()->default(0);
+            $table->decimal('carbohidratos', 8, 2)->nullable()->default(0);
+            
             $table->timestamps();
         });
 
