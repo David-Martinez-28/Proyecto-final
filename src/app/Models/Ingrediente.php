@@ -21,12 +21,13 @@ class Ingrediente extends Model
      * @var array
      */
     protected $fillable = [
-        'nombre',
-        'calorias',
-        'proteinas',
-        'grasas',
-        'carbohidratos',
-    ];
+    'nombre', 
+    'calorias', 
+    'proteinas', 
+    'grasas', 
+    'carbohidratos', 
+    'dietista_id' // ¡Imprescindible para el método create()!
+];
 
     /**
      * Relación: Un ingrediente puede estar presente en muchas comidas.
@@ -41,5 +42,10 @@ class Ingrediente extends Model
         return $this->belongsToMany(Comida::class, 'comida_ingrediente')
                     ->withPivot('cantidad', 'unidad')
                     ->withTimestamps();
+    }
+    
+    public function dietista()
+    {
+        return $this->belongsTo(Dietista::class);
     }
 }

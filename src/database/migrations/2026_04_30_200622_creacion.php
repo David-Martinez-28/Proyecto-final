@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable(); // ESTA ES LA QUE FALTA
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role', ['dietista', 'paciente'])->default('paciente');
             $table->string('imagen')->default('default.png');
@@ -30,7 +30,7 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-        // 3. Perfil de Pacientes (Tus "Usuarios")
+        // 3. Perfil de Pacientes
         Schema::create('pacientes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('usuarios')->cascadeOnDelete();
@@ -42,21 +42,29 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-        // 4. Catálogos (Comidas, Rutinas, Ingredientes...)
+        // 4. Catálogos (Comidas, Rutinas, Ejercicios, Ingredientes)
         Schema::create('comidas', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
             $table->text('descripcion')->nullable();
-            $table->timestamps();
             $table->text('receta')->nullable();
             $table->integer('calorias')->nullable();
             $table->string('imagen')->nullable();
+            
+            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+            $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
+            $table->timestamps();
         });
 
         Schema::create('rutinas', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
             $table->text('descripcion')->nullable();
+            
+            
+            
+            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+            $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
             $table->timestamps();
         });
 
@@ -65,19 +73,25 @@ return new class extends Migration {
             $table->string('nombre');
             $table->string('grupo_muscular');
             $table->text('descripcion')->nullable();
+            
+            // 🔥 AÑADIDO: Campo extra para la imagen
+            $table->string('imagen')->nullable(); 
+            
+            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+            $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
             $table->timestamps();
         });
 
         Schema::create('ingredientes', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            
-            // 🔥 CORREGIDO: Renombrado a 'calorias' y agregados los tres macronutrientes pautados
             $table->decimal('calorias', 8, 2)->default(0); 
             $table->decimal('proteinas', 8, 2)->nullable()->default(0);
             $table->decimal('grasas', 8, 2)->nullable()->default(0);
             $table->decimal('carbohidratos', 8, 2)->nullable()->default(0);
             
+            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+            $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
             $table->timestamps();
         });
 
@@ -112,7 +126,6 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-
         Schema::create('paciente_rutina', function (Blueprint $table) {
             $table->id();
             $table->foreignId('paciente_id')->constrained('pacientes')->cascadeOnDelete();
@@ -125,17 +138,21 @@ return new class extends Migration {
 
     public function down(): void
     {
+        // 🚨 REORDENADO: Las tablas pivote y de asignación deben borrarse PRIMERO
         Schema::dropIfExists('paciente_comida');
         Schema::dropIfExists('paciente_rutina');
         Schema::dropIfExists('comida_ingrediente');
-        Schema::dropIfExists('ingredientes');
-        Schema::dropIfExists('rutinas');
+        Schema::dropIfExists('ejercicio_rutina');
+
+        // Luego los catálogos
         Schema::dropIfExists('comidas');
+        Schema::dropIfExists('rutinas');
+        Schema::dropIfExists('ejercicios');
+        Schema::dropIfExists('ingredientes');
+
+        // Finalmente los perfiles y usuarios base
         Schema::dropIfExists('pacientes');
         Schema::dropIfExists('dietistas');
         Schema::dropIfExists('usuarios');
-        Schema::dropIfExists('ejercicio_rutina');
-        Schema::dropIfExists('ejercicios');
-
     }
 };

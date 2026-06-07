@@ -16,13 +16,8 @@ class Comida extends Model
 
     protected $table = 'comidas';
     
-    protected $fillable = [
-        'nombre',
-        'descripcion',
-        'receta',
-        'calorias',
-        'imagen',
-    ];
+    // En app/Models/Comida.php
+    protected $fillable = ['nombre', 'receta', 'imagen', 'calorias', 'dietista_id'];
 
     /**
      * Relación: Una comida tiene muchos ingredientes.
@@ -42,5 +37,10 @@ class Comida extends Model
         return $this->belongsToMany(Paciente::class, 'paciente_comida')
                     ->withPivot('dia_semana', 'momento', 'estado')
                     ->withTimestamps();
+    }
+    // En app/Models/Rutina.php
+    public function dietista()
+    {
+        return $this->belongsTo(Dietista::class);
     }
 }

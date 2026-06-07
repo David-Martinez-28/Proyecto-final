@@ -56,4 +56,9 @@ class UsuariosController extends Controller
         $user->delete(); // Asegúrate de tener 'onDelete cascade' en tus migraciones
         return response()->json(['message' => 'Cuenta eliminada'], 200);
     }
+    public function me(Request $request)
+{
+    // Esto devuelve el dietista asociado al usuario logueado
+    return response()->json(auth()->user()->dietista);
+}
 }

@@ -3,100 +3,100 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Rutina; // CAMBIO: Singular (convención Laravel)
+use App\Models\Rutina;
+use App\Models\Ejercicio;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class RutinaController extends Controller
 {
-    /**
-     * Lista todas las rutinas disponibles con sus ejercicios.
-     */
     public function index()
     {
-        // Cargamos los ejercicios que pertenecen a cada rutina
-        return response()->json(Rutina::with('ejercicios')->get(), 200);
+        $dietistaId = auth()->user()->dietista->id;
+        $rutinas = Rutina::with(['ejercicios' => function($query) {
+            $query->withPivot('series', 'repeticiones', 'duracion_segundos', 'notas');
+        }])->where('dietista_id', $dietistaId)->get();
+
+        $rutinas->transform(function ($rutina) {
+            if ($rutina->imagen) $rutina->imagen = asset('storage/' . $rutina->imagen);
+            return $rutina;
+        });
+
+        return response()->json($rutinas, 200);
     }
 
-    /**
-     * Crea una nueva rutina (el contenedor).
-     */
     public function store(Request $request)
     {
-        // 1. Validamos tanto el nombre como el array de ejercicios
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'ejercicios' => 'required|array', // Validamos que llegue un array
-            'ejercicios.*' => 'exists:ejercicios,id' // Validamos que cada ID exista
-        ]);
-
-        // 2. Creamos la rutina
-        $rutina = Rutina::create([
-            'nombre' => $request->nombre
-        ]);
-
-        // 3. Asociamos los ejercicios mediante el método attach o sync
-        // Usamos sync para asegurar que se guarde la relación en la tabla pivote
-        $rutina->ejercicios()->sync($request->ejercicios);
-
-        return response()->json($rutina, 201);
-    }
-
-    /**
-     * Muestra una rutina específica y los ejercicios que la componen.
-     */
-    public function show($id)
-    {
-        // Usamos findOrFail para simplificar el código
-        $rutina = Rutina::with('ejercicios')->findOrFail($id);
-
-        return response()->json($rutina, 200);
-    }
-
-    /**
-     * Método Especial: Añadir un ejercicio a la rutina.
-     */
-    public function agregarEjercicio(Request $request, $rutinaId)
-    {
-        $rutina = Rutina::findOrFail($rutinaId);
+        // Decodificación de ejercicios desde FormData
+        if ($request->has('ejercicios') && is_string($request->input('ejercicios'))) {
+            $request->merge(['ejercicios' => json_decode($request->input('ejercicios'), true)]);
+        }
 
         $request->validate([
-            'ejercicio_id' => 'required|exists:ejercicios,id',
-            'series' => 'required|integer|min:1',
-            'repeticiones' => 'nullable|integer',
-            'duracion_segundos' => 'nullable|integer',
-            'notas' => 'nullable|string'
+            'nombre' => 'required|string|max:255',
+            'ejercicios' => 'nullable|array',
         ]);
 
-        // Guardamos en la tabla intermedia 'ejercicio_rutina'
-        $rutina->ejercicios()->attach($request->ejercicio_id, [
-            'series' => $request->series,
-            'repeticiones' => $request->repeticiones,
-            'duracion_segundos' => $request->duracion_segundos,
-            'notas' => $request->notas
-        ]);
+        return DB::transaction(function () use ($request) {
+            $dietistaId = auth()->user()->dietista->id;
+            
+            $rutina = Rutina::create([
+                'nombre' => $request->nombre,
+                'dietista_id' => $dietistaId,
+            ]);
 
-        return response()->json(['message' => 'Ejercicio añadido a la rutina'], 200);
+            if ($request->has('ejercicios')) {
+                $syncData = [];
+                foreach ($request->ejercicios as $ej) {
+                    $syncData[$ej['id']] = [
+                        'series' => $ej['series'] ?? 3,
+                        'repeticiones' => $ej['repeticiones'] ?? 12,
+                        'duracion_segundos' => $ej['duracion_segundos'] ?? 0
+                    ];
+                }
+                $rutina->ejercicios()->sync($syncData);
+            }
+
+            return response()->json($rutina->load('ejercicios'), 201);
+        });
     }
 
-    /**
-     * Actualizar nombre o descripción de la rutina.
-     */
     public function update(Request $request, $id)
     {
-        $rutina = Rutina::findOrFail($id);
-        $rutina->update($request->all());
+        $dietistaId = auth()->user()->dietista->id;
+        $rutina = Rutina::where('id', $id)->where('dietista_id', $dietistaId)->first();
 
-        return response()->json($rutina, 200);
+        if (!$rutina) return response()->json(['message' => 'Rutina no encontrada'], 404);
+
+        $request->validate(['nombre' => 'sometimes|required|string|max:255']);
+
+        $rutina->update($request->only(['nombre', 'descripcion']));
+
+        // 🔥 AQUÍ ESTÁ LA CLAVE: Procesar array de objetos con métricas
+        if ($request->has('ejercicios')) {
+            $syncData = [];
+            foreach ($request->ejercicios as $ej) {
+                // $ej ahora es un objeto/array con id, series, repeticiones, duracion_segundos
+                $syncData[$ej['id']] = [
+                    'series' => $ej['series'] ?? 0,
+                    'repeticiones' => $ej['repeticiones'] ?? 0,
+                    'duracion_segundos' => $ej['duracion_segundos'] ?? 0,
+                ];
+            }
+            $rutina->ejercicios()->sync($syncData);
+        }
+
+        return response()->json($rutina->load('ejercicios'), 200);
     }
 
-    /**
-     * Eliminar una rutina.
-     */
     public function destroy($id)
     {
-        $rutina = Rutina::findOrFail($id);
+        $dietistaId = auth()->user()->dietista->id;
+        $rutina = Rutina::where('id', $id)->where('dietista_id', $dietistaId)->first();
+        if (!$rutina) return response()->json(['message' => 'No encontrada'], 404);
+        
         $rutina->delete();
-
-        return response()->json(['message' => 'Rutina eliminada'], 200);
+        return response()->json(['message' => 'Eliminada'], 200);
     }
 }

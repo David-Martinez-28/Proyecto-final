@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Dietista;
 use App\Models\Ejercicio;
 use App\Models\Rutina;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class RutinaSeeder extends Seeder
 {
@@ -13,26 +15,49 @@ class RutinaSeeder extends Seeder
 
     public function run(): void
     {
-        $ejercicios = Ejercicio::all();
+        // 1. Iteramos sobre los dietistas reales del sistema
+        $dietistas = Dietista::all();
 
-        Rutina::factory()->count(6)->create()->each(function (Rutina $rutina) use ($ejercicios) {
-            $seleccion = $ejercicios->random(rand(4, 7));
+        foreach ($dietistas as $dietista) {
+            
+            // 2. Filtramos el catálogo de ejercicios para que solo use los suyos
+            $ejercicios = Ejercicio::where('dietista_id', $dietista->id)->get();
 
-            $pivot = $seleccion->mapWithKeys(function (Ejercicio $ej) {
-                $esPorTiempo = in_array($ej->nombre, self::$porTiempo)
-                    || fake()->boolean(20); // 20% de probabilidad extra de ser por tiempo
+            // Si este dietista no tiene ejercicios, no le creamos rutinas vacías
+            if ($ejercicios->isEmpty()) {
+                continue;
+            }
 
-                return [
-                    $ej->id => [
-                        'series'            => fake()->numberBetween(3, 5),
-                        'repeticiones'      => $esPorTiempo ? null : fake()->numberBetween(6, 15),
-                        'duracion_segundos' => $esPorTiempo ? fake()->randomElement([20, 30, 45, 60]) : null,
-                        'notas'             => fake()->boolean(25) ? fake('es_ES')->sentence() : null,
-                    ],
-                ];
+            // 3. Creamos 6 rutinas forzando que su dueño sea este dietista
+            Rutina::factory()->count(6)->create([
+                'dietista_id' => $dietista->id
+            ])->each(function (Rutina $rutina) use ($ejercicios) {
+                
+                // 🔥 PROTECCIÓN: Si el dietista tiene menos de 7 ejercicios, cogemos el máximo disponible
+                $maxEjercicios = min(7, $ejercicios->count());
+                $minEjercicios = min(4, $maxEjercicios); // Asegura que el mínimo no supere al máximo
+                
+                $seleccion = $ejercicios->random(rand($minEjercicios, $maxEjercicios));
+
+                $pivot = $seleccion->mapWithKeys(function (Ejercicio $ej) {
+                    
+                    // 💡 MEJORA: Usamos Str::contains por si el Factory generó "Plancha con peso" o similar
+                    $esPorTiempo = Str::contains($ej->nombre, self::$porTiempo, true)
+                        || fake()->boolean(20); // 20% de probabilidad extra de ser por tiempo
+
+                    return [
+                        $ej->id => [
+                            'series'            => fake()->numberBetween(3, 5),
+                            'repeticiones'      => $esPorTiempo ? null : fake()->numberBetween(6, 15),
+                            'duracion_segundos' => $esPorTiempo ? fake()->randomElement([20, 30, 45, 60]) : null,
+                            'notas'             => fake()->boolean(25) ? fake('es_ES')->sentence() : null,
+                        ],
+                    ];
+                });
+
+                // Insertamos los datos en la tabla pivote 'ejercicio_rutina'
+                $rutina->ejercicios()->attach($pivot->toArray());
             });
-
-            $rutina->ejercicios()->attach($pivot->toArray());
-        });
+        }
     }
 }

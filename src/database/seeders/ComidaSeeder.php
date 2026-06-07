@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Comida;
+use App\Models\Dietista;
 use App\Models\Ingrediente;
 use Illuminate\Database\Seeder;
 
@@ -12,23 +13,41 @@ class ComidaSeeder extends Seeder
 
     public function run(): void
     {
-        $ingredientes = Ingrediente::all();
+        // 1. Iteramos sobre todos los dietistas del sistema
+        $dietistas = Dietista::all();
 
-        Comida::factory()->count(10)->create()->each(function (Comida $comida) use ($ingredientes) {
-            $seleccion = $ingredientes->random(rand(2, 5));
+        foreach ($dietistas as $dietista) {
+            
+            // 2. Obtenemos SOLO los ingredientes de este dietista en concreto
+            $ingredientes = Ingrediente::where('dietista_id', $dietista->id)->get();
 
-            $pivot = $seleccion->mapWithKeys(function (Ingrediente $ing) {
-                $unidad   = fake()->randomElement(self::$unidades);
-                $cantidad = match ($unidad) {
-                    'ml' => fake()->randomFloat(2, 10, 50),
-                    'ud' => fake()->numberBetween(1, 4),
-                    default => fake()->randomFloat(2, 50, 250),
-                };
+            // Si por algún motivo este dietista no tiene ingredientes, pasamos al siguiente
+            if ($ingredientes->isEmpty()) {
+                continue;
+            }
 
-                return [$ing->id => ['cantidad' => $cantidad, 'unidad' => $unidad]];
+            // 3. Creamos las comidas forzando a que el creador sea este dietista
+            Comida::factory()->count(10)->create([
+                'dietista_id' => $dietista->id
+            ])->each(function (Comida $comida) use ($ingredientes) {
+                
+                // 🔥 MEJORA DE SEGURIDAD: Evita un error de Laravel si el dietista tiene menos de 5 ingredientes en su catálogo
+                $cantidadASeleccionar = rand(1, min(5, $ingredientes->count()));
+                $seleccion = $ingredientes->random($cantidadASeleccionar);
+
+                $pivot = $seleccion->mapWithKeys(function (Ingrediente $ing) {
+                    $unidad   = fake()->randomElement(self::$unidades);
+                    $cantidad = match ($unidad) {
+                        'ml' => fake()->randomFloat(2, 10, 50),
+                        'ud' => fake()->numberBetween(1, 4),
+                        default => fake()->randomFloat(2, 50, 250),
+                    };
+
+                    return [$ing->id => ['cantidad' => $cantidad, 'unidad' => $unidad]];
+                });
+
+                $comida->ingredientes()->attach($pivot->toArray());
             });
-
-            $comida->ingredientes()->attach($pivot->toArray());
-        });
+        }
     }
 }

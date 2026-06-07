@@ -10,7 +10,11 @@ class Rutina extends Model
     use HasFactory;
     
     protected $table = 'rutinas';
-    protected $guarded = [];
+    protected $fillable = [
+    'nombre', 
+    'descripcion',  
+    'dietista_id' // Permite su inserción masiva
+];
 
     /**
      * Relación: Una rutina está compuesta por muchos ejercicios.
@@ -32,5 +36,10 @@ class Rutina extends Model
         return $this->belongsToMany(Paciente::class, 'paciente_rutina')
                     ->withPivot('fecha_inicio', 'fecha_fin')
                     ->withTimestamps();
+    }
+    // En app/Models/Rutina.php
+    public function dietista()
+    {
+        return $this->belongsTo(Dietista::class);
     }
 }

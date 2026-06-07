@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Dietista;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ComidaFactory extends Factory
@@ -32,6 +33,9 @@ class ComidaFactory extends Factory
             'calorias'    => fake()->numberBetween(250, 850),
             // Añadimos la foto aleatoria que necesita el frontend
             'imagen'      => 'https://loremflickr.com/640/480/food,meal,dish?random=' . fake()->unique()->numberBetween(1, 1000),
+            
+            // 🔥 CAMBIO CRÍTICO: Añadimos el propietario
+            'dietista_id' => Dietista::factory(),
         ];
     }
 }

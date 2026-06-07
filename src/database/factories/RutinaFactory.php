@@ -2,10 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\Rutina;
+use App\Models\Dietista;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class RutinaFactory extends Factory
 {
+    protected $model = Rutina::class;
+
     private static array $objetivos = [
         'Fuerza', 'Hipertrofia', 'Resistencia', 'Movilidad', 'Rehabilitación', 'Tonificación',
     ];
@@ -28,6 +32,9 @@ class RutinaFactory extends Factory
         return [
             'nombre'      => "{$objetivo} {$zona}",
             'descripcion' => "Rutina de {$nivel} enfocada en {$objetivo} de {$zona}. " . fake('es_ES')->sentence(10),
+            
+            // 🔥 AÑADIDO: Asignamos el creador de la rutina
+            'dietista_id' => Dietista::factory(),
         ];
     }
 }

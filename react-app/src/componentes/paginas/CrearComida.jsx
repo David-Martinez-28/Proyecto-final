@@ -5,19 +5,20 @@ import useApiGet from '../../hooks/ApiDietista/useApiGet';
 import axios from 'axios';
 
 const CrearComida = () => {
+    // Estados para el formulario de creación de comida
     const [comida, setComida] = useState({ nombre: '', receta: '', ingredientes: [] });
     const [imagen, setImagen] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
     const [catalogo, setCatalogo] = useState([]);
     const [busquedaIngrediente, setBusquedaIngrediente] = useState('');
     const [enviando, setEnviando] = useState(false);
-    
+    // Referencia para el input de archivo, para poder resetearlo después de enviar la comida
     const fileInputRef = useRef(null);
-
+    // Cargamos el catálogo de ingredientes disponibles al montar el componente
     useEffect(() => {
         useApiGet('/ingredientes').then(data => setCatalogo(data || []));
     }, []);
-
+    // Función para manejar el cambio de imagen y generar una vista previa
     const handleImagenChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -25,7 +26,7 @@ const CrearComida = () => {
             setPreviewUrl(URL.createObjectURL(file));
         }
     };
-
+    // Función para añadir ingrediente a la comida, evitando duplicados
     const añadirIngrediente = (ing) => {
         if (comida.ingredientes.find(i => i.id === ing.id)) return;
         setComida(prev => ({
@@ -33,14 +34,14 @@ const CrearComida = () => {
             ingredientes: [...prev.ingredientes, { ...ing, cantidad: '', unidad: 'g' }]
         }));
     };
-
+    // Función para eliminar ingrediente de la comida
     const eliminarIngrediente = (id) => {
         setComida(prev => ({
             ...prev,
             ingredientes: prev.ingredientes.filter(i => i.id !== id)
         }));
     };
-
+    // Función para manejar el envío del formulario
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -75,7 +76,7 @@ const CrearComida = () => {
         try {
             const token = localStorage.getItem('token'); 
 
-            // 🚀 PETICIÓN NATIVA: Evitamos intermediarios para que el binario de la imagen viaje real
+        
             const response = await axios.post('http://212.227.178.175/api/comidas', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -117,7 +118,7 @@ const CrearComida = () => {
             setEnviando(false);
         }
     };
-
+    // Filtrado del catálogo de ingredientes según la búsqueda, para mostrar solo los relevantes en la lista de selección  
     const catalogoFiltrado = catalogo.filter(ing => 
         ing.nombre.toLowerCase().includes(busquedaIngrediente.toLowerCase())
     );

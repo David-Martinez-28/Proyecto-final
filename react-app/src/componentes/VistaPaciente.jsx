@@ -7,7 +7,7 @@ const VistaPaciente = () => {
     const { datosPlan, historialDietas, cargarMiPlan } = useClinica();
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
-    
+
     // Estado local para alternar entre el Plan Actual y las dietas archivadas
     const [dietaVisualizada, setDietaVisualizada] = useState({ nombre: "Plan Actual", comidas: [] });
     const [comidaActiva, setComidaActiva] = useState(null);
@@ -15,7 +15,7 @@ const VistaPaciente = () => {
     const [ejercicioActivo, setEjercicioActivo] = useState(null);
     const [showModalEjercicio, setShowModalEjercicio] = useState(false);
 
-    const pdfRef = useRef(); 
+    const pdfRef = useRef();
 
     const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     const momentos = ["desayuno", "almuerzo", "comida", "merienda", "cena"];
@@ -62,8 +62,8 @@ const VistaPaciente = () => {
             margin: 10,
             filename: `Plan_${dietaVisualizada.nombre.replace(/ /g, '_')}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2pdf: { 
-                scale: 2, 
+            html2pdf: {
+                scale: 2,
                 useCORS: true,
                 logging: false,
                 letterRendering: true
@@ -78,12 +78,12 @@ const VistaPaciente = () => {
 
     return (
         <Container fluid className="vista-paciente px-3 py-4">
-            
+
             {/* --- CABECERA DE SEGUIMIENTO METABÓLICO --- */}
             <header className="plan-header mb-4">
                 <Row className="align-items-center g-3">
                     <Col md={3} className="d-none d-md-block"></Col>
-                    
+
                     <Col xs={12} md={6} className="text-center">
                         <h2 className="fw-bold mb-2 text-dark">Mi Plan de Salud</h2>
                         <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
@@ -92,7 +92,7 @@ const VistaPaciente = () => {
                             <Badge bg="success" className="np-badge">Promedio: {promedioDiarioReal} kcal/día</Badge>
                         </div>
                     </Col>
-                    
+
                     <Col xs={12} md={3} className="text-end">
                         <Button variant="primary" className="fw-bold px-4 py-2 shadow-sm w-100" onClick={descargarPDF}>
                             Descargar Plan en PDF
@@ -125,20 +125,20 @@ const VistaPaciente = () => {
                     <div className="bg-light p-3 rounded-4 mb-3 mb-lg-0 border-top border-success border-4 shadow-sm">
                         <h6 className="fw-bold text-success mb-3 px-1">Mis Dietas</h6>
                         <ListGroup variant="flush" className="rounded-3 overflow-hidden">
-                            <ListGroup.Item 
-                                action 
+                            <ListGroup.Item
+                                action
                                 className={`fw-bold small ${dietaVisualizada.nombre === 'Plan Actual' ? 'text-success bg-success bg-opacity-10' : ''}`}
-                                onClick={() => setDietaVisualizada({ 
-                                    nombre: "Plan Actual", 
-                                    comidas: datosPlan?.comidas?.filter(c => c.pivot?.estado !== 'archivada') || [] 
+                                onClick={() => setDietaVisualizada({
+                                    nombre: "Plan Actual",
+                                    comidas: datosPlan?.comidas?.filter(c => c.pivot?.estado !== 'archivada') || []
                                 })}
                             >
                                 Plan Actual
                             </ListGroup.Item>
                             {Object.keys(historialDietas || {}).map(p => (
-                                <ListGroup.Item 
-                                    action 
-                                    key={p} 
+                                <ListGroup.Item
+                                    action
+                                    key={p}
                                     className={`small fw-medium ${dietaVisualizada.nombre === p ? 'text-success bg-success bg-opacity-10' : 'text-muted'}`}
                                     onClick={() => setDietaVisualizada({ nombre: p, comidas: historialDietas[p] })}
                                 >
@@ -167,9 +167,9 @@ const VistaPaciente = () => {
                                         {momentos.map(m => {
                                             const p = obtenerPlatoCelda(diaIdx, m);
                                             return (
-                                                <ListGroup.Item 
-                                                    key={m} 
-                                                    className={`d-flex justify-content-between align-items-center py-3 ${p ? 'bg-success bg-opacity-10' : ''}`} 
+                                                <ListGroup.Item
+                                                    key={m}
+                                                    className={`d-flex justify-content-between align-items-center py-3 ${p ? 'bg-success bg-opacity-10' : ''}`}
                                                     onClick={() => p && (setComidaActiva(p), setShowDetalle(true))}
                                                     style={{ cursor: p ? 'pointer' : 'default' }}
                                                 >
@@ -196,8 +196,13 @@ const VistaPaciente = () => {
                     {/* --- SECCIÓN DE ENTRENAMIENTO --- */}
                     <h4 className="fw-bold mt-5 mb-4 text-center text-md-start text-dark">Mis Rutinas Activas</h4>
                     <Row className="g-4">
-                        {datosPlan?.rutinas && datosPlan.rutinas.length === 0 ? (
-                            <Col xs={12}><Alert variant="info" className="text-center rounded-4">No tienes rutinas asignadas para este periodo.</Alert></Col>
+                        {/* Comprobamos de forma segura si el array existe y está vacío */}
+                        {datosPlan?.rutinas?.length === 0 ? (
+                            <Col xs={12}>
+                                <Alert variant="info" className="text-center rounded-4">
+                                    No tienes rutinas asignadas para este periodo.
+                                </Alert>
+                            </Col>
                         ) : (
                             datosPlan?.rutinas?.map((rutina) => (
                                 <Col xs={12} sm={6} md={4} key={rutina.id}>
@@ -205,16 +210,24 @@ const VistaPaciente = () => {
                                         <Card.Body>
                                             <Card.Title className="fw-bold text-primary mb-3">{rutina.nombre}</Card.Title>
                                             <ListGroup variant="flush">
-                                                {rutina.exercises?.map(ej => (
-                                                    <ListGroup.Item 
-                                                        key={ej.id} 
-                                                        action 
-                                                        className="px-0 small d-flex align-items-center border-0 py-2" 
+
+                                                {/* 🔥 CORRECCIÓN: Cambiado 'exercises' por 'ejercicios' */}
+                                                {rutina.ejercicios?.map(ej => (
+                                                    <ListGroup.Item
+                                                        key={ej.id}
+                                                        action
+                                                        className="px-0 small d-flex align-items-center border-0 py-2"
                                                         onClick={() => { setEjercicioActivo(ej); setShowModalEjercicio(true); }}
                                                     >
                                                         <span className="text-primary me-2 fw-bold">✓</span> {ej.nombre}
                                                     </ListGroup.Item>
                                                 ))}
+
+                                                {/* Opcional: Mensaje por si la rutina existe pero no tiene ejercicios */}
+                                                {(!rutina.ejercicios || rutina.ejercicios.length === 0) && (
+                                                    <p className="text-muted small mb-0">Sin ejercicios asignados.</p>
+                                                )}
+
                                             </ListGroup>
                                         </Card.Body>
                                     </Card>
@@ -272,11 +285,11 @@ const TablaNutricional = ({ momentos, diasSemana, obtenerPlato, titulo, setComid
                         {diasSemana.map((_, i) => {
                             const p = obtenerPlato(i, m);
                             return (
-                                <td key={i} 
-                                    onClick={() => !isPDF && p && (setComida(p), setShow(true))} 
+                                <td key={i}
+                                    onClick={() => !isPDF && p && (setComida(p), setShow(true))}
                                     className={p ? "bg-success bg-opacity-10 target-celda" : ""}
-                                    style={{ 
-                                        fontSize: isPDF ? '10px' : '13px', 
+                                    style={{
+                                        fontSize: isPDF ? '10px' : '13px',
                                         cursor: (p && !isPDF) ? 'pointer' : 'default',
                                         transition: 'background 0.2s'
                                     }}
@@ -302,80 +315,128 @@ const TablaNutricional = ({ momentos, diasSemana, obtenerPlato, titulo, setComid
 // ============================================================================
 // COMPONENTE SECUNDARIO: MODAL DETALLE DE COMIDAS
 // ============================================================================
-const ModalDetalleComida = ({ show, onHide, comida, maxCal }) => (
-    <Modal show={show} onHide={onHide} size="lg" centered className="rounded-4">
-        <Modal.Header closeButton className="border-0 pb-0">
-            <Modal.Title className="fw-bold text-success fs-4">{comida?.nombre}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="pt-3">
-            {comida?.imagen && (
-                <img 
-                    src={comida.imagen} 
-                    className="img-fluid mb-4 rounded-4 shadow-sm mx-auto d-block" 
-                    style={{ maxHeight: '250px', width: '100%', objectFit: 'cover' }} 
-                    alt="Plato nutricional" 
+const ModalDetalleComida = ({ show, onHide, comida, maxCal }) => {
+    
+    // Función para calcular totales de macronutrientes
+    const calcularMacro = (campo) => {
+        if (!comida?.ingredientes) return 0;
+        return comida.ingredientes.reduce((sum, ing) => {
+            // (valor del ingrediente por cada 100g / 100) * cantidad usada
+            const valorPorGramo = parseFloat(ing[campo] || 0) / 100;
+            const cantidad = parseFloat(ing.pivot?.cantidad || 0);
+            return sum + (valorPorGramo * cantidad);
+        }, 0).toFixed(1);
+    };
+
+    return (
+        <Modal show={show} onHide={onHide} size="lg" centered className="rounded-4">
+            <Modal.Header closeButton className="border-0 pb-0">
+                <Modal.Title className="fw-bold text-success fs-4">{comida?.nombre}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body className="pt-3">
+                {comida?.imagen && (
+                    <img
+                        src={comida.imagen}
+                        className="img-fluid mb-4 rounded-4 shadow-sm mx-auto d-block"
+                        style={{ maxHeight: '250px', width: '100%', objectFit: 'cover' }}
+                        alt="Plato nutricional"
+                    />
+                )}
+
+                {/* Grid de Nutrientes Principales */}
+                <Row className="g-2 mb-4 text-center">
+                    <Col xs={3}>
+                        <div className="bg-primary bg-opacity-10 p-2 rounded-3">
+                            <small className="text-muted d-block small">Prot.</small>
+                            <span className="fw-bold text-primary">{calcularMacro('proteinas')}g</span>
+                        </div>
+                    </Col>
+                    <Col xs={3}>
+                        <div className="bg-warning bg-opacity-10 p-2 rounded-3">
+                            <small className="text-muted d-block small">Grasas</small>
+                            <span className="fw-bold text-warning">{calcularMacro('grasas')}g</span>
+                        </div>
+                    </Col>
+                    <Col xs={3}>
+                        <div className="bg-info bg-opacity-10 p-2 rounded-3">
+                            <small className="text-muted d-block small">Carbos</small>
+                            <span className="fw-bold text-info">{calcularMacro('carbohidratos')}g</span>
+                        </div>
+                    </Col>
+                    <Col xs={3}>
+                        <div className="bg-danger bg-opacity-10 p-2 rounded-3">
+                            <small className="text-muted d-block small">Kcal</small>
+                            <span className="fw-bold text-danger">{comida?.calorias || 0}</span>
+                        </div>
+                    </Col>
+                </Row>
+
+                <span className="text-muted small fw-bold text-uppercase d-block mb-1">Impacto calórico diario</span>
+                <ProgressBar
+                    variant={(comida?.calorias / maxCal) > 0.4 ? "warning" : "success"}
+                    now={Math.min(((comida?.calorias || 0) / maxCal) * 100, 100)}
+                    className="mb-4 rounded-pill"
+                    style={{ height: '10px' }}
                 />
-            )}
-            <Row className="g-3 mb-4 text-center">
-                <Col xs={6}>
-                    <Card className="bg-success bg-opacity-10 border-0 p-3 rounded-3">
-                        <span className="text-muted small fw-medium">Calorías del Plato</span>
-                        <span className="fw-bold fs-5 text-success">{comida?.calorias} kcal</span>
-                    </Card>
-                </Col>
-                <Col xs={6}>
-                    <Card className="bg-danger bg-opacity-10 border-0 p-3 rounded-3">
-                        <span className="text-muted small fw-medium">Límite Diario</span>
-                        <span className="fw-bold fs-5 text-danger">{maxCal} kcal</span>
-                    </Card>
-                </Col>
-            </Row>
-            
-            <span className="text-muted small fw-bold text-uppercase d-block mb-1">Impacto calórico diario</span>
-            <ProgressBar 
-                variant={(comida?.calorias / maxCal) > 0.4 ? "warning" : "success"} 
-                now={Math.min((comida?.calorias / maxCal) * 100, 100)} 
-                className="mb-4 rounded-pill" 
-                style={{ height: '10px' }}
-            />
-            
-            <h6 className="fw-bold text-dark"><span className="text-success">■</span> Descripción del Menú</h6>
-            <p className="small text-muted mb-4 bg-light p-3 rounded-3">{comida?.descripcion || 'Sin descripción disponible.'}</p>
-            
-            <h6 className="fw-bold text-dark"><span className="text-success">■</span> Modo de Preparación</h6>
-            <p className="small text-secondary mb-4 bg-light p-3 rounded-3" style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>{comida?.receta || 'Consúltale a tu dietista los pasos detallados.'}</p>
-            
-            <h6 className="fw-bold text-dark mb-2"><span className="text-success">■</span> Macroingredientes y Cantidades</h6>
-            <div className="bg-light p-3 rounded-3">
-                <ul className="mb-0 ps-3">
-                    {comida?.ingredientes && comida.ingredientes.length === 0 ? (
-                        <li className="small text-muted">Ingredientes genéricos adaptados al pesaje objetivo.</li>
-                    ) : (
-                        comida?.ingredientes?.map((ing, idx) => (
+
+                <h6 className="fw-bold text-dark"><span className="text-success">■</span> Descripción del Menú</h6>
+                <p className="small text-muted mb-4 bg-light p-3 rounded-3">{comida?.descripcion || 'Sin descripción disponible.'}</p>
+
+                <h6 className="fw-bold text-dark"><span className="text-success">■</span> Modo de Preparación</h6>
+                <p className="small text-secondary mb-4 bg-light p-3 rounded-3" style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>{comida?.receta || 'Consúltale a tu dietista los pasos detallados.'}</p>
+
+                <h6 className="fw-bold text-dark mb-2"><span className="text-success">■</span> Ingredientes Detallados</h6>
+                <div className="bg-light p-3 rounded-3">
+                    <ul className="mb-0 ps-3">
+                        {comida?.ingredientes?.map((ing, idx) => (
                             <li key={idx} className="small text-secondary mb-1">
-                                <strong className="text-dark">{ing.nombre}</strong> — {ing.pivot?.cantidad} {ing.pivot?.unidad}
+                                <strong className="text-dark">{ing.nombre}</strong> 
+                                — {ing.pivot?.cantidad} {ing.pivot?.unidad} 
+                                <span className="text-muted ms-1">({ing.proteinas}p/{ing.grasas}g/{ing.carbohidratos}c)</span>
                             </li>
-                        ))
-                    )}
-                </ul>
-            </div>
-        </Modal.Body>
-    </Modal>
-);
+                        ))}
+                    </ul>
+                </div>
+            </Modal.Body>
+        </Modal>
+    );
+};
 
 // ============================================================================
 // COMPONENTE SECUNDARIO: MODAL DE INSTRUCCIONES DE EJERCICIO
 // ============================================================================
+
 const ModalEjercicio = ({ show, onHide, ejercicio }) => (
     <Modal show={show} onHide={onHide} centered className="rounded-4">
         <Modal.Header closeButton className="border-0 pb-0">
             <Modal.Title className="fw-bold text-primary fs-4">🏋️ {ejercicio?.nombre}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="pt-3 pb-4">
+
             <div className="mb-3">
                 <span className="text-muted small fw-bold text-uppercase d-block mb-1">Grupo Muscular Focalizado:</span>
                 <Badge bg="primary" className="px-3 py-2 rounded-pill fw-bold text-uppercase np-badge">{ejercicio?.grupo_muscular || 'Cuerpo Completo'}</Badge>
             </div>
+
+            {/* --- NUEVO: Ficha de datos técnicos del PIVOT --- */}
+            <div className="mb-4 bg-white border border-primary border-opacity-25 shadow-sm p-3 rounded-3">
+                <Row className="text-center align-items-center">
+                    <Col xs={6}>
+                        <span className="d-block text-muted small fw-bold text-uppercase">Series</span>
+                        <span className="fw-bold text-primary fs-5">{ejercicio?.pivot?.series || '-'}</span>
+                    </Col>
+                    <Col xs={6} className="border-start">
+                        <span className="d-block text-muted small fw-bold text-uppercase">
+                            {ejercicio?.pivot?.repeticiones ? 'Repeticiones' : 'Tiempo'}
+                        </span>
+                        <span className="fw-bold text-primary fs-5">
+                            {ejercicio?.pivot?.repeticiones || ejercicio?.pivot?.tiempo || '-'}
+                        </span>
+                    </Col>
+                </Row>
+            </div>
+            {/* ----------------------------------------------- */}
+
             <div>
                 <span className="text-muted small fw-bold text-uppercase d-block mb-1">Instrucciones de Ejecución técnica:</span>
                 <p className="small text-secondary bg-light p-3 rounded-3 mb-0" style={{ lineHeight: '1.6', whiteSpace: 'pre-line' }}>

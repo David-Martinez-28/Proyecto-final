@@ -42,6 +42,7 @@ export const ClinicaProvider = ({ children }) => {
             await iniciarPacientes();
         }
     };
+    
 
     // ----------------------------------------------------
     // LOGICA DEL PLAN DEL PACIENTE

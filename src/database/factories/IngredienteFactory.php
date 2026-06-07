@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Dietista;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class IngredienteFactory extends Factory
@@ -73,13 +74,16 @@ class IngredienteFactory extends Factory
 
         return [
             // Mantiene tu formato de nombre original
-            'nombre'        => ucfirst(fake('es_ES')->word()) . ' (' . $grupo . ')',
+            'nombre'         => ucfirst(fake('es_ES')->word()) . ' (' . $grupo . ')',
             
-            // 🔥 Ajustado a las nuevas columnas de la migración corregida
+            // Ajustado a las nuevas columnas de la migración corregida
             'calorias'       => fake()->randomFloat(2, $rango['cal_min'], $rango['cal_max']),
             'proteinas'      => fake()->randomFloat(2, $rango['p_min'], $rango['p_max']),
             'grasas'         => fake()->randomFloat(2, $rango['g_min'], $rango['g_max']),
             'carbohidratos'  => fake()->randomFloat(2, $rango['c_min'], $rango['c_max']),
+            
+            // 🔥 AÑADIDO: El dueño del ingrediente
+            'dietista_id'    => Dietista::factory(),
         ];
     }
 }

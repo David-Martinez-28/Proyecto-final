@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Table, Button, Badge, Spinner, Modal, Form } from 'react-bootstrap';
+import { Container, Card, Table, Badge, Spinner, Button, Modal, Form } from 'react-bootstrap';
 import { useClinica } from '../contexto/contexto.jsx';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/es';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
+// ✅ Forzamos el idioma global en moment
 moment.locale('es');
+// ✅ MODIFICADO: Pasamos moment explícitamente configurado para que los días internos de la rejilla cambien a español
 const localizer = momentLocalizer(moment);
 
 const AgendaDietista = () => {
@@ -58,7 +60,6 @@ const AgendaDietista = () => {
         return (cita.paciente?.user?.name || 'Paciente').toLowerCase().includes(buscarPacientePendiente.toLowerCase());
     });
 
-    // 🔥 CORREGIDO: Filtramos de forma estricta para mostrar SOLO las confirmadas activas
     const confirmadasFiltradas = citas.filter(cita => {
         if (cita.estado !== 'confirmada') return false;
         return (cita.paciente?.user?.name || 'Paciente').toLowerCase().includes(buscarPacienteConfirmado.toLowerCase());
@@ -79,12 +80,29 @@ const AgendaDietista = () => {
                 motivo_cancelacion: cita.motivo_cancelacion 
             };
         });
-
+        
     const estiloEventos = (event) => ({
         style: { backgroundColor: event.estado === 'confirmada' ? '#198754' : '#ffc107', color: event.estado === 'confirmada' ? 'white' : 'black', borderRadius: '5px', border: 'none', fontWeight: 'bold' }
     });
 
     const cerrarModal = () => setModalInfo({ show: false, evento: null });
+
+    // Diccionario completo de traducciones para los botones y etiquetas del calendario
+    const mensajesEspanol = {
+        allDay: 'Todo el día',
+        previous: 'Anterior',
+        next: 'Siguiente',
+        today: 'Hoy',
+        month: 'Mes',
+        week: 'Semana',
+        day: 'Día',
+        agenda: 'Agenda',
+        date: 'Fecha',
+        time: 'Hora',
+        event: 'Cita',
+        noEventsInRange: 'No hay citas en este rango.',
+        showMore: total => `+ Ver más (${total})`
+    };
 
     return (
         <Container className="py-5" style={{ maxWidth: '1400px' }}>
@@ -93,7 +111,21 @@ const AgendaDietista = () => {
             {/* CALENDARIO */}
             <Card className="shadow-sm border-0 mb-5 rounded-4 p-3">
                 <div style={{ height: '600px' }}>
-                    <Calendar localizer={localizer} events={eventosCalendario} startAccessor="start" endAccessor="end" eventPropGetter={estiloEventos} messages={{today:'Hoy', month:'Mes', week:'Semana', day:'Día'}} date={fechaActual} onNavigate={f => setFechaActual(f)} view={vistaActual} onView={v => setVistaActual(v)} views={['month', 'week', 'day']} onSelectEvent={e => setModalInfo({ show: true, evento: e })} />
+                    <Calendar 
+                        localizer={localizer} 
+                        events={eventosCalendario} 
+                        startAccessor="start" 
+                        endAccessor="end" 
+                        eventPropGetter={estiloEventos} 
+                        culture="es" 
+                        messages={mensajesEspanol} 
+                        date={fechaActual} 
+                        onNavigate={f => setFechaActual(f)} 
+                        view={vistaActual} 
+                        onView={v => setVistaActual(v)} 
+                        views={['month', 'week', 'day']} 
+                        onSelectEvent={e => setModalInfo({ show: true, evento: e })} 
+                    />
                 </div>
             </Card>
 

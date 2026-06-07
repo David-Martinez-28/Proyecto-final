@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Ejercicio;
+use App\Models\Dietista;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class EjercicioFactory extends Factory
@@ -40,9 +41,14 @@ class EjercicioFactory extends Factory
 
         return [
             'nombre'         => trim("{$prefijo} {$sufijo}"),
-            
             'grupo_muscular' => fake()->randomElement(self::$musculos),
-            'descripcion'    => fake()->sentence(8), 
+            'descripcion'    => fake('es_ES')->sentence(8), 
+            
+            
+            'imagen'         => 'https://loremflickr.com/640/480/fitness,workout?random=' . fake()->unique()->numberBetween(1, 1000),
+            
+            // 🔥 AÑADIDO: Asignamos el propietario del ejercicio
+            'dietista_id'    => Dietista::factory(),
         ];
     }
 }

@@ -140,4 +140,16 @@ class AuthController extends Controller
             'user'    => $user->load($user->role === 'paciente' ? 'paciente' : 'dietista')
         ]);
     }
+
+    public function me(Request $request)
+{
+    // Obtenemos el dietista relacionado al usuario autenticado
+    $dietista = $request->user()->dietista;
+
+    if (!$dietista) {
+        return response()->json(['message' => 'Dietista no encontrado'], 404);
+    }
+
+    return response()->json($dietista);
+}
 }

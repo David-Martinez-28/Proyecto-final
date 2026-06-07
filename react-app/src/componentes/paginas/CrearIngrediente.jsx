@@ -3,9 +3,10 @@ import { Container, Card, Form, Button, Row, Col, Spinner } from 'react-bootstra
 import useApiPost from '../../hooks/ApiDietista/useApiPost';
 
 const CrearIngrediente = () => {
+    // Estado para almacenar los datos del nuevo ingrediente
     const [ingrediente, setIngrediente] = useState({ nombre: '', calorias: '', proteinas: '', grasas: '', carbohidratos: '' });
     const [enviando, setEnviando] = useState(false);
-
+    // Función para manejar el envío del formulario
     const handleSubmit = async (e) => {
         e.preventDefault();
         setEnviando(true);

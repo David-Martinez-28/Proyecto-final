@@ -11,7 +11,13 @@ class Ejercicio extends Model
 
     protected $table = 'ejercicios';
 
-    protected $guarded = [];
+    protected $fillable = [
+    'nombre', 
+    'grupo_muscular', 
+    'descripcion', 
+    'imagen', 
+    'dietista_id' 
+    ];
 
     /**
      * Relación: Un ejercicio puede formar parte de muchas rutinas.
@@ -20,5 +26,10 @@ class Ejercicio extends Model
     {
         return $this->belongsToMany(Rutina::class, 'rutina_ejercicio')
                     ->withPivot('series', 'repeticiones', 'duracion_segundos', 'notas');
+    }
+    // En app/Models/Rutina.php
+    public function dietista()
+    {
+        return $this->belongsTo(Dietista::class);
     }
 }

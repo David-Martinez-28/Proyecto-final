@@ -22,8 +22,4 @@ class EstadisticaSeeder extends Seeder
         });
     }
           
-
-    
-
-    
 }

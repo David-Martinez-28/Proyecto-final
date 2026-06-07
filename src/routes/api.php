@@ -77,7 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('ingredientes', IngredienteController::class);
     Route::apiResource('usuarios', UsuariosController::class);
     Route::apiResource('citas', CitaController::class)->except(['store']);
-    
+    Route::get('/me', [AuthController::class, 'me']);
     // Logout
     Route::post('/logout', [AuthController::class, 'logout']);
 });
