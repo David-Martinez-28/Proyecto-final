@@ -414,6 +414,10 @@ const ModalEjercicio = ({ show, onHide, ejercicio }) => (
         <Modal.Body className="pt-3 pb-4">
 
             <div className="mb-3">
+                <img src={ejercicio?.imagen} 
+                    className="img-fluid mb-4 rounded-4 shadow-sm mx-auto d-block"
+                        style={{ maxHeight: '250px', width: '100%', objectFit: 'cover' }}
+                    alt="Ejercicio" />
                 <span className="text-muted small fw-bold text-uppercase d-block mb-1">Grupo Muscular Focalizado:</span>
                 <Badge bg="primary" className="px-3 py-2 rounded-pill fw-bold text-uppercase np-badge">{ejercicio?.grupo_muscular || 'Cuerpo Completo'}</Badge>
             </div>

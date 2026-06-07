@@ -168,16 +168,7 @@ const AsignarPlan = () => {
                         </Form.Select>
                     </div>
 
-                    {esEditable && (
-                        <Button
-                            variant="warning"
-                            className="fw-bold rounded-pill px-4 shadow-sm"
-                            onClick={ArchivarDieta}
-                            disabled={enviando || planActual.length === 0}
-                        >
-                            {enviando ? <Spinner size="sm" /> : '📦 Archivar Plan'}
-                        </Button>
-                    )}
+                    
                 </div>
             </div>
 
