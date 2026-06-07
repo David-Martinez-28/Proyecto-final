@@ -3,6 +3,9 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Container, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../hooks/ApiLogin/useAuth';
 
+// Importación de tu nueva Landing Page
+import Inicio from '../Inicio'; // 👈 NUEVO: Importamos tu página de presentación
+
 // Importación de tus componentes y vistas base
 import Login from '../Login';
 import VistaDietista from '../VistaDietista';
@@ -19,7 +22,7 @@ import AgendaDietista from '../AgendaDietista';
 import EstadisticasPaciente from '../EstadisticasPaciente';
 import Perfil from '../Perfil';
 
-// 🔥 NUEVAS IMPORTACIONES: Vistas de consulta e indexación de catálogos
+// Vistas de consulta e indexación de catálogos
 import ListarEjercicios from '../paginas/ListarEjercicios';
 import ListarIngredientes from '../paginas/ListarIngredientes';
 import ListarRutinas from '../paginas/ListarRutinas';
@@ -42,7 +45,7 @@ const LayoutProtegido = () => {
     }
 
     if (!user) {
-        return <Navigate to="/" replace />;
+        return <Navigate to="/" replace />; // Devuelve a la Landing Page si pierde sesión
     }
 
     return (
@@ -75,8 +78,9 @@ const FiltroPorRol = ({ rolesPermitidos }) => {
 const Rutas = () => {
     return (
         <Routes>
-            {/* 🔓 RUTA PÚBLICA */}
-            <Route path="/" element={<Login />} />
+            {/* 🔓 RUTAS PÚBLICAS */}
+            <Route path="/" element={<Inicio />} /> {/* 👈 MODIFICADO: Ahora la raíz es tu Landing Page */}
+            <Route path="/login" element={<Login />} /> {/* 👈 MODIFICADO: El formulario queda en /login */}
 
             {/* 🔒 RUTAS PRIVADAS ANIDADAS */}
             <Route element={<LayoutProtegido />}>
@@ -95,7 +99,7 @@ const Rutas = () => {
                     <Route path="/dietista/rutinas" element={<CrearRutina />} />
                     <Route path="/dietista/comidas" element={<CrearComida />} />
                     
-                    {/* 🔥 NUEVAS RUTAS: Indexación y visualización de catálogos */}
+                    {/* Indexación y visualización de catálogos */}
                     <Route path="/dietista/listar-ejercicios" element={<ListarEjercicios />} />
                     <Route path="/dietista/listar-ingredientes" element={<ListarIngredientes />} />
                     <Route path="/dietista/listar-rutinas" element={<ListarRutinas />} />
@@ -113,7 +117,7 @@ const Rutas = () => {
                 <Route path="/perfil" element={<Perfil />} />
             </Route>
 
-            {/* 🔄 REDIRECCIÓN POR DEFECTO */}
+            {/* 🔄 REDIRECCIÓN POR DEFECTO A LA LANDING PAGE */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );

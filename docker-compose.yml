@@ -63,7 +63,7 @@ services:
     networks:
       - app-network
 
-# 🚨 ESTO ES LO QUE FALTABA
+
 networks:
   app-network:
     driver: bridge
