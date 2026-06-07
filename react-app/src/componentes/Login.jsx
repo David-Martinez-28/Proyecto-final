@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Container, Card, Form, Button, Modal, Spinner, Alert } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom'; // 👈 Añadido useLocation
+import { Container, Card, Form, Button, Modal, Spinner, Alert, Row, Col } from 'react-bootstrap';
 import { useAuth } from '../hooks/ApiLogin/useAuth';
 import api from '../hooks/ApiLogin/axios';
 
@@ -19,6 +19,14 @@ const Login = () => {
 
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation(); // 👈 Inicializamos el lector de estado de la ruta
+
+    // 🚨 NUEVO: Si entramos a la página y viene el estado desde la Landing, activamos el registro
+    useEffect(() => {
+        if (location.state?.abrirEnRegistro) {
+            setIsRegister(true);
+        }
+    }, [location.state]);
 
     const toggleMode = () => {
         setIsRegister(!isRegister);
@@ -64,7 +72,6 @@ const Login = () => {
     };
 
     return (
-        /* 🔥 CORREGIDO: Clases añadidas para centrar perfectamente la tarjeta en el medio de la pantalla */
         <Container fluid className="d-flex align-items-center justify-content-center min-vh-100 bg-light login-container">
             <Card className="card-login border-0 shadow-sm rounded-4 border-top border-4 overflow-hidden" 
                   style={{ width: '100%', maxWidth: '420px', borderTopColor: isRegister ? 'var(--bs-success)' : 'var(--bs-primary)' }}>
@@ -100,13 +107,13 @@ const Login = () => {
                             <Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} required className="border-secondary-subtle" />
                         </Form.Group>
                         
-                        <Button type="submit" variant={"primary"} className="w-100 py-2 fw-bold shadow-sm botton-login">
+                        <Button type="submit" variant="primary" className="w-100 py-2 fw-bold shadow-sm botton-login">
                             {isRegister ? 'Ir al Pago (50€)' : 'Iniciar Sesión'}
                         </Button>
                     </Form>
                     
                     <div className="text-center mt-3">
-                        <Button variant="link" onClick={toggleMode} className={`fw-semibold small text-decoration-none ${isRegister ? 'text-primary' : 'text-primary'}`}>
+                        <Button variant="link" onClick={toggleMode} className="fw-semibold small text-decoration-none text-primary">
                             {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿Nuevo dietista? Regístrate'}
                         </Button>
                     </div>
@@ -116,13 +123,48 @@ const Login = () => {
             {/* MODAL DE PAGO */}
             <Modal show={showPayment} onHide={() => !isProcessing && setShowPayment(false)} centered backdrop="static" className="rounded-4">
                 <Modal.Header closeButton={!isProcessing} className="border-0 pb-0">
-                    <Modal.Title className="fw-bold text-primary fs-5">Confirmar Pago</Modal.Title>
+                    <Modal.Title className="fw-bold text-primary fs-5">💳 Confirmar Pago Seguro</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="pt-2 pb-4">
-                    <p className="text-muted small mb-4">Para activar tu cuenta profesional en NutriPanel, por favor confirma el pago de la tasa única de alta.</p>
-                    <Button variant="primary" className="w-100 py-2 fw-bold shadow-sm" onClick={handleRegister} disabled={isProcessing}>
-                        {isProcessing ? <Spinner size="sm" animation="border" className="me-2" /> : 'Pagar 50,00 €'}
-                    </Button>
+                    <p className="text-muted small mb-3">Para activar tu cuenta profesional en Strong Hell, por favor introduce los datos de tu tarjeta para abonar la tasa única de alta.</p>
+                    
+                    <Form onSubmit={(e) => { e.preventDefault(); handleRegister(); }}>
+                        <Form.Group className="mb-2">
+                            <Form.Label className="small fw-semibold text-secondary mb-1">Titular de la tarjeta</Form.Label>
+                            <Form.Control type="text" placeholder="Ej: David Martínez Serna" disabled={isProcessing} required className="py-2" />
+                        </Form.Group>
+
+                        <Form.Group className="mb-2">
+                            <Form.Label className="small fw-semibold text-secondary mb-1">Número de tarjeta</Form.Label>
+                            <Form.Control type="text" maxLength="16" placeholder="0000 0000 0000 0000" disabled={isProcessing} required className="py-2" />
+                        </Form.Group>
+
+                        <Row className="g-2 mb-4">
+                            <Col xs={7}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-semibold text-secondary mb-1">Fecha de caducidad</Form.Label>
+                                    <Form.Control type="text" maxLength="5" placeholder="MM/AA" disabled={isProcessing} required className="py-2 text-center" />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={5}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-semibold text-secondary mb-1">CVC</Form.Label>
+                                    <Form.Control type="text" maxLength="3" placeholder="123" disabled={isProcessing} required className="py-2 text-center" />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        <Button type="submit" variant="primary" className="w-100 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center" disabled={isProcessing}>
+                            {isProcessing ? (
+                                <>
+                                    <Spinner size="sm" animation="border" className="me-2" />
+                                    Procesando pago seguro...
+                                </>
+                            ) : (
+                                'Pagar 50,00 € y Activar Cuenta'
+                            )}
+                        </Button>
+                    </Form>
                 </Modal.Body>
             </Modal>
         </Container>
