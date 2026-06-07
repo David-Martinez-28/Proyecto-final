@@ -13,11 +13,11 @@ const Inicio = () => {
                 {/* SECCIÓN HERO: Presentación Principal */}
                 <Row className="align-items-center mb-5 g-5">
                     <Col lg={6} className="text-center text-lg-start">
-                        <Badge bg="success" className="px-3 py-2 mb-3 fs-6 fw-semibold rounded-pill bg-opacity-10 text-success">
+                        <Badge bg="primary" className="px-3 py-2 mb-3 fs-6 fw-semibold rounded-pill bg-opacity-10 text-primary">
                              Gestión Digital para Dietistas
                         </Badge>
                         <h1 className="display-4 fw-bold text-dark mb-3">
-                            Lleva tus asesorías al siguiente nivel con <span className="text-success">Strong Hell</span>
+                            Lleva tus asesorías al siguiente nivel con <span className="text-primary">Strong Hell</span>
                         </h1>
                         <p className="lead text-secondary mb-4">
                             La plataforma integral diseñada para que profesionales de la salud organicen dietas, estructuren rutinas de entrenamiento y monitoricen el progreso de sus pacientes en tiempo real de forma ágil y centralizada.
@@ -26,7 +26,7 @@ const Inicio = () => {
                         {/* BOTONES DE ACCIÓN PRINCIPALES */}
                         <div className="d-flex gap-3 justify-content-center justify-content-lg-start">
                             <Button 
-                                variant="success" 
+                                variant="primary" 
                                 size="lg" 
                                 className="fw-bold px-4 py-2 rounded-pill shadow-sm"
                                 onClick={() => navigate('/login')}

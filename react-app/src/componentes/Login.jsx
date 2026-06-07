@@ -100,13 +100,13 @@ const Login = () => {
                             <Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} required className="border-secondary-subtle" />
                         </Form.Group>
                         
-                        <Button type="submit" variant={isRegister ? "success" : "primary"} className="w-100 py-2 fw-bold shadow-sm botton-login">
+                        <Button type="submit" variant={"primary"} className="w-100 py-2 fw-bold shadow-sm botton-login">
                             {isRegister ? 'Ir al Pago (50€)' : 'Iniciar Sesión'}
                         </Button>
                     </Form>
                     
                     <div className="text-center mt-3">
-                        <Button variant="link" onClick={toggleMode} className={`fw-semibold small text-decoration-none ${isRegister ? 'text-success' : 'text-primary'}`}>
+                        <Button variant="link" onClick={toggleMode} className={`fw-semibold small text-decoration-none ${isRegister ? 'text-primary' : 'text-primary'}`}>
                             {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿Nuevo dietista? Regístrate'}
                         </Button>
                     </div>
@@ -116,11 +116,11 @@ const Login = () => {
             {/* MODAL DE PAGO */}
             <Modal show={showPayment} onHide={() => !isProcessing && setShowPayment(false)} centered backdrop="static" className="rounded-4">
                 <Modal.Header closeButton={!isProcessing} className="border-0 pb-0">
-                    <Modal.Title className="fw-bold text-success fs-5">Confirmar Pago</Modal.Title>
+                    <Modal.Title className="fw-bold text-primary fs-5">Confirmar Pago</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="pt-2 pb-4">
                     <p className="text-muted small mb-4">Para activar tu cuenta profesional en NutriPanel, por favor confirma el pago de la tasa única de alta.</p>
-                    <Button variant="success" className="w-100 py-2 fw-bold shadow-sm" onClick={handleRegister} disabled={isProcessing}>
+                    <Button variant="primary" className="w-100 py-2 fw-bold shadow-sm" onClick={handleRegister} disabled={isProcessing}>
                         {isProcessing ? <Spinner size="sm" animation="border" className="me-2" /> : 'Pagar 50,00 €'}
                     </Button>
                 </Modal.Body>
