@@ -19,7 +19,7 @@ class EjercicioController extends Controller
             $dietistaId = auth()->user()->dietista->id;
             $ejercicios = Ejercicio::where('dietista_id', $dietistaId)->get();
             
-            // Transformamos la ruta de la imagen a una URL absoluta para React
+            /
             $ejercicios->transform(function ($ejercicio) {
                 if ($ejercicio->imagen) {
                     $ejercicio->imagen = asset('storage/' . $ejercicio->imagen);
@@ -38,36 +38,32 @@ class EjercicioController extends Controller
      */
     public function store(Request $request)
     {
-        // Limpiamos el input por si llega un archivo corrupto o en formato string desde FormData
+        
         if (!$request->hasFile('imagen') || !$request->file('imagen')->isValid()) {
             $request->request->remove('imagen');
         }
-        \Log::info($request->all()); // Log de todos los datos
-    if ($request->hasFile('imagen')) {
-        \Log::info('Archivo recibido: ' . $request->file('imagen')->getClientOriginalName());
-    } else {
-        \Log::warning('No se recibió ninguna imagen');
-    }
+        \
+    
 
         $request->validate([
             'nombre'         => 'required|string|max:255',
             'grupo_muscular' => 'required|string|max:255',
             'descripcion'    => 'nullable|string',
-            'imagen'         => 'sometimes|image|mimes:jpeg,png,jpg,webp,gif|max:2048', // Permitimos GIF por si quieres animaciones
+            'imagen'         => 'sometimes|image|mimes:jpeg,png,jpg,webp,gif|max:2048', 
         ]);
 
         try {
             $data = $request->except('imagen');
             $data['dietista_id'] = auth()->user()->dietista->id;
 
-            // Guardamos la imagen en storage/app/public/ejercicios
+            
             if ($request->hasFile('imagen')) {
                 $data['imagen'] = $request->file('imagen')->store('ejercicios', 'public');
             }
 
             $ejercicio = Ejercicio::create($data);
 
-            // Formateamos para la respuesta instantánea
+           
             if ($ejercicio->imagen) {
                 $ejercicio->imagen = asset('storage/' . $ejercicio->imagen);
             }
@@ -135,7 +131,7 @@ class EjercicioController extends Controller
 
         $ejercicio->update($data);
 
-        // Preparamos la respuesta: si hay imagen, le ponemos el asset
+        
         $respuesta = $ejercicio->toArray();
         if ($ejercicio->imagen) {
             $respuesta['imagen'] = asset('storage/' . $ejercicio->imagen);

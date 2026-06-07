@@ -31,7 +31,7 @@ class NotificacionController extends Controller
             return response()->json($notificaciones, 200);
 
         } catch (Exception $e) {
-            // 🔥 Evitamos el Error 500 genérico capturando cualquier fallo de base de datos
+            
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error al leer las notificaciones en la base de datos de NutriPanel',

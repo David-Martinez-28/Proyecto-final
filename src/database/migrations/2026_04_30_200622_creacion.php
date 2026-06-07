@@ -51,7 +51,7 @@ return new class extends Migration {
             $table->integer('calorias')->nullable();
             $table->string('imagen')->nullable();
             
-            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+            
             $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
             $table->timestamps();
         });
@@ -63,7 +63,7 @@ return new class extends Migration {
             
             
             
-            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+            
             $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
             $table->timestamps();
         });
@@ -74,10 +74,10 @@ return new class extends Migration {
             $table->string('grupo_muscular');
             $table->text('descripcion')->nullable();
             
-            // 🔥 AÑADIDO: Campo extra para la imagen
-            $table->string('imagen')->nullable(); 
             
-            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+            $table->string('imagen')->nullable(); 
+
+           
             $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
             $table->timestamps();
         });
@@ -90,7 +90,7 @@ return new class extends Migration {
             $table->decimal('grasas', 8, 2)->nullable()->default(0);
             $table->decimal('carbohidratos', 8, 2)->nullable()->default(0);
             
-            // 🔥 AÑADIDO: Propiedad exclusiva del Dietista
+           
             $table->foreignId('dietista_id')->constrained('dietistas')->cascadeOnDelete();
             $table->timestamps();
         });
@@ -138,7 +138,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        // 🚨 REORDENADO: Las tablas pivote y de asignación deben borrarse PRIMERO
+        
         Schema::dropIfExists('paciente_comida');
         Schema::dropIfExists('paciente_rutina');
         Schema::dropIfExists('comida_ingrediente');

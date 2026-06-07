@@ -28,11 +28,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/update', [UsuariosController::class, 'update']);
     Route::delete('/user/delete', [UsuariosController::class, 'destroy']);
     
-    // Notificaciones (Siempre arriba)
+    
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
     Route::post('/notificaciones/{id}/leer', [NotificacionController::class, 'marcarComoLeida']);
     
-    // --- RUTAS DE CITAS PERSONALIZADAS ---
+    
     Route::get('/dietista/mis-citas', [CitaController::class, 'misCitas']); 
     Route::get('/paciente/mis-citas', [CitaController::class, 'misCitasPaciente']);
     Route::post('/citas/{cita}/estado', [CitaController::class, 'actualizarEstado']); 
@@ -43,15 +43,15 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user()->load($request->user()->role === 'paciente' ? 'paciente' : 'dietista');
     });
     
-    // Rutas de estadísticas y evolución
+    
     Route::get('/paciente/{id}/estadisticas', [PacienteController::class, 'getEstadisticasPaciente']);
     Route::post('/pacientes/estadisticas/{id?}', [PacienteController::class, 'guardarEstadistica']);
     
-    // Subida de foto de perfil
+    
     Route::post('/user/avatar', [AuthController::class, 'uploadAvatar']);
 
-    // --- 💡 RUTAS DE ASIGNACIÓN LÓGICA COPIADAS ARRIBA DE LOS RECURSOS ---
-    // Colocamos estas rutas aquí para que intercepten la lógica antes de que el comodín del apiResource intente capturar la URL
+    
+    
     Route::post('/comidas/{comida}/agregar-ingrediente', [ComidaController::class, 'agregarIngrediente']);
     Route::post('/rutinas/{rutina}/agregar-ejercicio', [RutinaController::class, 'agregarEjercicio']);
 
@@ -64,11 +64,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pacientes/{id}/asignar-ejercicio', [PacienteController::class, 'asignarEjercicio']);
     Route::delete('/pacientes/{id}/quitar-ejercicio', [PacienteController::class, 'quitarEjercicio']);
 
-    // EL CORAZÓN DEL FRONTEND: El plan del paciente logueado
+    
     Route::get('/mi-plan', [PacienteController::class, 'obtenerPlan']);
     Route::post('/pacientes/{id}/archivar-plan', [PacienteController::class, 'archivarPlan']);
 
-    // --- RECURSOS API (Abajo del todo para evitar solapamientos) ---
+    
     Route::apiResource('dietistas', DietistaController::class);
     Route::apiResource('pacientes', PacienteController::class);
     Route::apiResource('comidas', ComidaController::class);
@@ -78,6 +78,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('usuarios', UsuariosController::class);
     Route::apiResource('citas', CitaController::class)->except(['store']);
     Route::get('/me', [AuthController::class, 'me']);
-    // Logout
+  
     Route::post('/logout', [AuthController::class, 'logout']);
 });

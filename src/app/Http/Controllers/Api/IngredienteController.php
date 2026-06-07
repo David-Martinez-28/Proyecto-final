@@ -15,7 +15,7 @@ class IngredienteController extends Controller
     public function index(): JsonResponse
     {
         try {
-            // 🔥 CAMBIO: Filtramos por el propietario
+           
             $dietistaId = auth()->user()->dietista->id;
             $ingredientes = Ingrediente::where('dietista_id', $dietistaId)->get();
             
@@ -30,7 +30,7 @@ class IngredienteController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        // 🔥 CAMBIO: Actualizados los campos para que coincidan con tu migración exacta
+       
         $validated = $request->validate([
             'nombre'        => 'required|string|max:255',
             'calorias'      => 'required|numeric|min:0',
@@ -40,7 +40,7 @@ class IngredienteController extends Controller
         ]);
 
         try {
-            // 🔥 CAMBIO: Asignamos el ingrediente al dietista
+            
             $validated['dietista_id'] = auth()->user()->dietista->id;
             
             $ingrediente = Ingrediente::create($validated);
@@ -59,7 +59,7 @@ class IngredienteController extends Controller
         try {
             $dietistaId = auth()->user()->dietista->id;
             
-            // 🔥 CAMBIO: Buscamos verificando también el propietario
+           
             $ingrediente = Ingrediente::where('id', $id)->where('dietista_id', $dietistaId)->first();
 
             if (!$ingrediente) {
@@ -94,7 +94,7 @@ class IngredienteController extends Controller
                 'carbohidratos' => 'nullable|numeric|min:0',
             ]);
 
-            // 🔥 CAMBIO: Evitamos que se pueda inyectar un cambio de dueño
+            
             $ingrediente->update($request->except('dietista_id'));
 
             return response()->json($ingrediente, 200);
@@ -111,7 +111,7 @@ class IngredienteController extends Controller
         try {
             $dietistaId = auth()->user()->dietista->id;
             
-            // 🔥 CAMBIO: Verificamos propiedad antes de eliminar
+            
             $ingrediente = Ingrediente::where('id', $id)->where('dietista_id', $dietistaId)->first();
 
             if (!$ingrediente) {

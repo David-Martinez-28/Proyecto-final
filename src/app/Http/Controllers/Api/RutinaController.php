@@ -73,7 +73,7 @@ class RutinaController extends Controller
 
         $rutina->update($request->only(['nombre', 'descripcion']));
 
-        // 🔥 AQUÍ ESTÁ LA CLAVE: Procesar array de objetos con métricas
+        
         if ($request->has('ejercicios')) {
             $syncData = [];
             foreach ($request->ejercicios as $ej) {

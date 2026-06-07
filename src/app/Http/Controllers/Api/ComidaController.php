@@ -34,18 +34,15 @@ class ComidaController extends Controller
     }
     public function destroy($id)
 {
-    // 1. Buscamos la comida o lanzamos un error 404 si no existe
+    
     $comida = Comida::findOrFail($id);
 
-    // 2. Rompemos las relaciones en las tablas pivote antes de borrar
-    // Esto limpia las referencias en cascada de forma manual en la base de datos
-    $comida->ingredientes()->detach(); // Quita los ingredientes vinculados a este plato
     
-    // Si tienes vinculada la comida a menús, planes o dietas, añade sus relaciones aquí:
-    // $comida->menus()->detach();
-    // $comida->dietas()->detach();
+    $comida->ingredientes()->detach(); 
+    
+    
 
-    // 3. Ahora que está completamente libre de ataduras en MySQL, la borramos sin error 500
+    
     $comida->delete();
 
     return response()->json(['message' => 'Comida eliminada correctamente']);
@@ -64,12 +61,12 @@ class ComidaController extends Controller
             ]);
         }
 
-        // Si no es un archivo válido, nos aseguramos de que no sea un string de texto
+        
         if (!$request->hasFile('imagen') || !$request->file('imagen')->isValid()) {
             $request->request->remove('imagen');
         }
 
-        // 2. Validación manual interna
+        // 2. Validación manual 
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
             'receta' => 'nullable|string',
@@ -88,7 +85,7 @@ class ComidaController extends Controller
             ], 422);
         }
 
-        // 3. Ejecución segura de la inserción física
+        
         try {
             return DB::transaction(function () use ($request) {
                 
@@ -97,7 +94,7 @@ class ComidaController extends Controller
                     $rutaImagen = $request->file('imagen')->store('comidas', 'public');
                 }
 
-                // Verificamos de forma segura que el usuario tiene el perfil de dietista
+                
                 $usuario = auth()->user();
                 if (!$usuario || !$usuario->dietista) {
                     abort(response()->json([
@@ -175,21 +172,21 @@ class ComidaController extends Controller
     }
     public function update(Request $request, $id)
 {
-    // 1. Buscamos la comida
+   
     $comida = \App\Models\Comida::findOrFail($id);
 
-    // 2. Validamos los datos (asegúrate de incluir los campos que recibes)
+    
     $request->validate([
         'nombre' => 'required|string|max:255',
         'receta' => 'nullable|string',
         'imagen' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
     ]);
 
-    // 3. Actualizamos campos de texto
+    
     $comida->nombre = $request->nombre;
     $comida->receta = $request->receta;
 
-    // 4. Gestión de imagen
+    
     if ($request->hasFile('imagen')) {
         // Borrar antigua si existe
         if ($comida->imagen) {
@@ -199,7 +196,7 @@ class ComidaController extends Controller
         $comida->imagen = asset('storage/' . $path);
     }
 
-    // 5. Gestión de ingredientes (si vienen en el JSON)
+    
     if ($request->has('ingredientes')) {
         $ingredientes = json_decode($request->ingredientes, true);
         $syncData = [];

@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cita;
 use Illuminate\Http\Request;
-use App\Models\Notificacion; // Mantenemos la importación de tu modelo
+use App\Models\Notificacion; 
 
 class CitaController extends Controller
 {
-    // 1. EL PACIENTE PIDE UNA CITA (Perfecto)
+    // EL PACIENTE PIDE UNA CITA 
     public function store(Request $request)
     {
         $request->validate([
@@ -50,7 +50,7 @@ class CitaController extends Controller
         ], 201);
     }
 
-    // 2. EL DIETISTA VE SUS CITAS (Perfecto)
+    //Para vcer mis citas
     public function misCitas(Request $request)
     {
         $dietista = $request->user()->dietista;
@@ -67,7 +67,7 @@ class CitaController extends Controller
         return response()->json($citas, 200);
     }
 
-    // 3. UNIFICADO: EL DIETISTA CONFIRMA, CANCELA O RECHAZA LA CITA
+    //Actualiza el estado de la cita
    public function actualizarEstado(Request $request, $id)
     {
         $cita = Cita::findOrFail($id);
@@ -79,7 +79,7 @@ class CitaController extends Controller
 
         $userLogueado = $request->user();
         
-        // Verificación de políticas de privacidad y accesos
+        
         $esSuDietista = $userLogueado->dietista && ($cita->dietista_id === $userLogueado->dietista->id);
         $esSuPaciente = $userLogueado->paciente && ($cita->paciente_id === $userLogueado->paciente->id);
 
@@ -87,17 +87,16 @@ class CitaController extends Controller
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
-        // 🔥 CORREGIDO: Almacenamos el estado Y el motivo en la fila de la cita en MySQL
         $cita->update([
             'estado' => $request->estado,
-            'motivo_cancelacion' => $request->motivo_cancelacion // Ahora sí se guarda en la base de datos
+            'motivo_cancelacion' => $request->motivo_cancelacion 
         ]);
 
         $motivoTexto = $request->motivo_cancelacion 
             ? "\nMotivo indicado: \"" . $request->motivo_cancelacion . "\"" 
             : "";
 
-        // ENVÍO DE NOTIFICACIONES (Mantenemos tu lógica intacta)
+        
         if ($userLogueado->role === 'paciente') {
             Notificacion::create([
                 'user_id' => $cita->dietista->user_id,

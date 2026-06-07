@@ -33,7 +33,7 @@ class RutinaSeeder extends Seeder
                 'dietista_id' => $dietista->id
             ])->each(function (Rutina $rutina) use ($ejercicios) {
                 
-                // 🔥 PROTECCIÓN: Si el dietista tiene menos de 7 ejercicios, cogemos el máximo disponible
+               
                 $maxEjercicios = min(7, $ejercicios->count());
                 $minEjercicios = min(4, $maxEjercicios); // Asegura que el mínimo no supere al máximo
                 
@@ -41,7 +41,7 @@ class RutinaSeeder extends Seeder
 
                 $pivot = $seleccion->mapWithKeys(function (Ejercicio $ej) {
                     
-                    // 💡 MEJORA: Usamos Str::contains por si el Factory generó "Plancha con peso" o similar
+                    
                     $esPorTiempo = Str::contains($ej->nombre, self::$porTiempo, true)
                         || fake()->boolean(20); // 20% de probabilidad extra de ser por tiempo
 

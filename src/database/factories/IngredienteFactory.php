@@ -82,7 +82,7 @@ class IngredienteFactory extends Factory
             'grasas'         => fake()->randomFloat(2, $rango['g_min'], $rango['g_max']),
             'carbohidratos'  => fake()->randomFloat(2, $rango['c_min'], $rango['c_max']),
             
-            // 🔥 AÑADIDO: El dueño del ingrediente
+            
             'dietista_id'    => Dietista::factory(),
         ];
     }

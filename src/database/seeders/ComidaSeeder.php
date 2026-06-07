@@ -31,7 +31,7 @@ class ComidaSeeder extends Seeder
                 'dietista_id' => $dietista->id
             ])->each(function (Comida $comida) use ($ingredientes) {
                 
-                // 🔥 MEJORA DE SEGURIDAD: Evita un error de Laravel si el dietista tiene menos de 5 ingredientes en su catálogo
+               
                 $cantidadASeleccionar = rand(1, min(5, $ingredientes->count()));
                 $seleccion = $ingredientes->random($cantidadASeleccionar);
 

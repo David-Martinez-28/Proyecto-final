@@ -17,12 +17,12 @@ class DietistaController extends Controller
     {
         $user = auth()->user();
 
-        // Verificamos que el usuario logueado sea un dietista
+      
         if ($user->role !== 'dietista' || !$user->dietista) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
-        // TRAEMOS SOLO los pacientes que pertenecen a ESTE dietista
+        
         $pacientes = $user->dietista->pacientes()->with('user')->get();
 
         return response()->json($pacientes, 200);
@@ -35,7 +35,7 @@ class DietistaController extends Controller
     {
         $dietista = auth()->user()->dietista;
 
-        // Si el paciente no pertenece al dietista logueado, denegamos el acceso
+        
         if ($paciente->dietista_id !== $dietista->id) {
             return response()->json(['error' => 'No tienes permiso para ver este paciente'], 403);
         }
@@ -57,7 +57,7 @@ class DietistaController extends Controller
      */
     public function update(Request $request, Dietista $dietista): JsonResponse
 {
-    // 1. Validaciones
+    
     $request->validate([
         'name' => 'sometimes|string|max:255',
         'num_colegiado' => 'sometimes|string',
@@ -68,14 +68,14 @@ class DietistaController extends Controller
     // 2. Actualizar datos de la tabla 'dietistas'
     $dietista->update($request->only(['num_colegiado', 'especialidad']));
 
-    // 3. Actualizar datos de la tabla 'users'
+   
     $user = $dietista->user;
     
     if ($request->has('name')) {
         $user->name = $request->name;
     }
 
-    // 4. Lógica de contraseña segura
+    
     if ($request->filled('password')) {
         $user->password = Hash::make($request->password);
     }
@@ -91,7 +91,7 @@ class DietistaController extends Controller
      */
     public function destroy(Dietista $dietista): JsonResponse
     {
-        // Al eliminar al dietista, decidimos si eliminar también su cuenta de usuario
+        
         $user = $dietista->user;
         $dietista->delete();
         $user->delete();

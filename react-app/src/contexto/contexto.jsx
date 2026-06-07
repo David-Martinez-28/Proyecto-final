@@ -65,7 +65,7 @@ export const ClinicaProvider = ({ children }) => {
             }
         }
     }, []);
-
+    
     const registrarEstadistica = async (nuevasStats, pacienteId = null) => {
         const url = pacienteId ? `/pacientes/estadisticas/${pacienteId}` : '/pacientes/estadisticas';
         const exito = await useApiPost(url, nuevasStats);

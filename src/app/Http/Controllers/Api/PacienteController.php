@@ -108,8 +108,7 @@ class PacienteController extends Controller
                 $q->orderBy('dia_semana', 'asc');
             },
             'comidas.ingredientes' => function ($query) {
-                // ⚠️ CORREGIDO: Cambiado 'amount' por 'cantidad' para que coincida con tu MySQL
-                $query->withPivot('cantidad', 'unidad'); 
+                
             },
             'rutinas' => function ($q) {
                 $q->withPivot('fecha_inicio', 'fecha_fin');
@@ -248,7 +247,7 @@ class PacienteController extends Controller
         }
 
         try {
-            // syncWithoutDetaching añade si no existe, o actualiza si ya existe
+           
             $paciente->rutinas()->syncWithoutDetaching([
                 $request->rutina_id => [
                     'fecha_inicio' => $request->fecha_inicio,
@@ -292,7 +291,7 @@ class PacienteController extends Controller
             ->where('estado', 'activa')
             ->update([
                 'estado' => 'archivada',
-                // Registramos cuándo se archivó (la fecha de inicio se puede manejar manualmente o asumir desde la creación)
+                
                 'fecha_fin' => now()->toDateString()
             ]);
 
@@ -307,12 +306,12 @@ class PacienteController extends Controller
             'masa_muscular' => 'nullable|numeric',
         ]);
 
-        // 1. Identificar al paciente
+        
         $paciente = $pacienteId 
             ? \App\Models\Paciente::findOrFail($pacienteId) 
             : $request->user()->paciente;
 
-        // 2. SEGURIDAD: Si quien hace la petición es el dietista, validar propiedad
+      
         if ($request->user()->role === 'dietista') {
             if ($paciente->dietista_id !== $request->user()->dietista->id) {
                 return response()->json(['error' => 'No autorizado'], 403);

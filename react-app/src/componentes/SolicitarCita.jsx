@@ -5,7 +5,7 @@ import { useClinica } from '../contexto/contexto.jsx';
 
 const SolicitarCita = () => {
     const { citasPaciente, cargarCitasPaciente, cambiarEstadoCita } = useClinica();
-
+    
     const [fecha, setFecha] = useState('');
     const [hora, setHora] = useState('');
     const [motivo, setMotivo] = useState('');

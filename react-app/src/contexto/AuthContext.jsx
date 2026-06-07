@@ -5,7 +5,7 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true); // 1. Nuevo estado de carga
+    const [loading, setLoading] = useState(true); 
 
     // 2. Verificar sesión al recargar
     useEffect(() => {
@@ -13,16 +13,16 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    // Configuramos el token para todas las peticiones
+                    
                     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                    // Pedimos al backend quién es el usuario actual
+                    
                     const { data } = await api.get('/user'); 
                     setUser(data);
                 } catch (error) {
-                    localStorage.removeItem('token'); // Si el token es inválido, limpiamos
+                    localStorage.removeItem('token'); 
                 }
             }
-            setLoading(false); // Ya terminamos de comprobar
+            setLoading(false); 
         };
         verificarSesion();
     }, []);

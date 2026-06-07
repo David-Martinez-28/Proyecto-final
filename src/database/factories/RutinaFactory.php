@@ -33,7 +33,7 @@ class RutinaFactory extends Factory
             'nombre'      => "{$objetivo} {$zona}",
             'descripcion' => "Rutina de {$nivel} enfocada en {$objetivo} de {$zona}. " . fake('es_ES')->sentence(10),
             
-            // 🔥 AÑADIDO: Asignamos el creador de la rutina
+            
             'dietista_id' => Dietista::factory(),
         ];
     }
