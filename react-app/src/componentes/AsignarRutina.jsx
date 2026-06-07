@@ -24,19 +24,17 @@ const AsignarRutina = () => {
         fecha_fin: ''
     });
 
-   const cargarDatosPaciente = async () => {
-    const res = await useApiGet(`/pacientes/${id}`);
-    console.log("JSON recibido de la API:", res);
-    
-    // Si res.data existe, usamos eso. Si res viene directo, usamos res.
-    const pacienteData = res.data || res; 
-    
-    if (pacienteData) {
-        setInfoPaciente(pacienteData);
-        // AQUÍ ESTABA EL ERROR: Acceder a "rutinas" dentro de "pacienteData"
-        setRutinasPaciente(pacienteData.rutinas || []);
-    }
-};
+    const cargarDatosPaciente = async () => {
+        const res = await useApiGet(`/pacientes/${id}`);
+        console.log("JSON recibido de la API:", res);
+        
+        const pacienteData = res.data || res; 
+        
+        if (pacienteData) {
+            setInfoPaciente(pacienteData);
+            setRutinasPaciente(pacienteData.rutinas || []);
+        }
+    };
 
     useEffect(() => {
         const inicializar = async () => {
@@ -54,7 +52,6 @@ const AsignarRutina = () => {
         inicializar();
     }, [id]);
 
-    // Renombrado para evitar conflicto con el nombre del componente
     const handleEnviarAsignacion = async (e) => {
         e.preventDefault();
         if (!asignacion.rutina_id || !asignacion.fecha_inicio || !asignacion.fecha_fin) {
@@ -90,7 +87,7 @@ const AsignarRutina = () => {
     if (cargando) {
         return (
             <Container className="d-flex justify-content-center align-items-center vh-100">
-                <Spinner animation="border" variant="danger" />
+                <Spinner animation="border" variant="dark" />
             </Container>
         );
     }
@@ -103,8 +100,8 @@ const AsignarRutina = () => {
                 </Button>
                 <h2 className="fw-bold mb-0 text-dark">
                     Asignar Bloques:
-                    <span className="text-danger ms-2">
-                        {/* Accedemos a user.name */}
+                    {/* Cambiado el texto de rojo a un gris oscuro elegante */}
+                    <span className="text-secondary ms-2">
                         {infoPaciente?.user?.name || 'Paciente'}
                     </span>
                 </h2>
@@ -113,7 +110,8 @@ const AsignarRutina = () => {
             <Row className="g-4">
                 <Col lg={4}>
                     <Card className="border-0 shadow-sm rounded-4">
-                        <Card.Header className="bg-danger text-white rounded-top-4 py-3 border-0">
+                        {/* Cambiada la cabecera de peligro (danger) a gris oscuro/negro profesional */}
+                        <Card.Header className="bg-dark text-white rounded-top-4 py-3 border-0">
                             <h6 className="mb-0 fw-bold fs-5">➕ Nueva Asignación</h6>
                         </Card.Header>
                         <Card.Body className="p-4">
@@ -148,7 +146,7 @@ const AsignarRutina = () => {
                                 </Row>
 
                                 <Button variant="dark" type="submit" className="w-100 fw-bold py-2 rounded-pill shadow-sm" disabled={enviando}>
-                                    {enviando ? <Spinner size="sm" /> : 'Asignar al Paciente'}
+                                    {enviando ? <Spinner size="sm" animation="border" variant="light" /> : 'Asignar al Paciente'}
                                 </Button>
                             </Form>
                         </Card.Body>
@@ -165,14 +163,27 @@ const AsignarRutina = () => {
                                 </div>
                             ) : (
                                 <Table hover className="align-middle">
-                                    <thead className="bg-light"><tr><th>Rutina</th><th className="text-center">Inicio</th><th className="text-center">Fin</th><th className="text-end">Acciones</th></tr></thead>
+                                    <thead className="table-light small text-uppercase text-muted">
+                                        <tr>
+                                            <th>Rutina</th>
+                                            <th className="text-center">Inicio</th>
+                                            <th className="text-center">Fin</th>
+                                            <th className="text-end pe-3">Acciones</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {rutinasPaciente.map((r, index) => (
                                             <tr key={index}>
                                                 <td><p className="fw-bold text-dark mb-0">{r.nombre}</p></td>
                                                 <td className="text-center"><Badge bg="secondary">{r.pivot?.fecha_inicio}</Badge></td>
-                                                <td className="text-center"><Badge bg="danger">{r.pivot?.fecha_fin}</Badge></td>
-                                                <td className="text-end"><Button variant="outline-danger" size="sm" onClick={() => handleEliminarRutina(r.id)}>Quitar</Button></td>
+                                                {/* Cambiado el badge de la fecha fin de danger (rojo) a primary (azul neutro) */}
+                                                <td className="text-center"><Badge bg="primary">{r.pivot?.fecha_fin}</Badge></td>
+                                                {/* Cambiado el botón de acción de outline-danger a un formato outline-secondary más limpio */}
+                                                <td className="text-end">
+                                                    <Button variant="outline-secondary" size="sm" onClick={() => handleEliminarRutina(r.id)}>
+                                                        Quitar
+                                                    </Button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

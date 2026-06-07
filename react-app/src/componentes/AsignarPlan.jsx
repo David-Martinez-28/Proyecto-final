@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Form, Button, Table, Spinner, Badge, Alert } from 'react-bootstrap';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -22,6 +22,7 @@ const AsignarPlan = () => {
     // --- ESTADOS DE UI ---
     const [periodoSeleccionado, setPeriodoSeleccionado] = useState('actual');
     const [platoSeleccionado, setPlatoSeleccionado] = useState(null);
+    const [busquedaPlato, setBusquedaPlato] = useState(''); // 👈 NUEVO: Estado para filtrar la barra del catálogo
     const [cargando, setCargando] = useState(true);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState(null);
@@ -31,50 +32,55 @@ const AsignarPlan = () => {
 
     // --- FUNCIÓN CENTRAL DE CARGA ---
     const cargarDatos = async () => {
-    try {
-        setCargando(true);
-        setError(null);
+        try {
+            setCargando(true);
+            setError(null);
 
-        // 1. Usamos tu hook GET para traer todas las comidas
-        const dataComidas = await useApiGet('/comidas');
-        setComidasCatalogo(dataComidas || []);
-        console.log("Comidas recibidas del catálogo:", dataComidas);
-        
-        // 2. Usamos tu hook GET para traer al paciente específico
-        const resPaciente = await useApiGet(`/pacientes/${id}`);
-        const todasLasComidasPivot = resPaciente?.comidas || [];
-        console.log("Datos recibidos del paciente:", todasLasComidasPivot);
-        
-        // 3. Procesamos los datos
-        // CORRECCIÓN AQUÍ: Filtramos para excluir las archivadas del plan actual editable
-        setPlanActual(todasLasComidasPivot.filter(c => c.pivot.estado !== 'archivada'));
-        
-        const archivadas = todasLasComidasPivot.filter(c => c.pivot.estado === 'archivada');
-        const agrupadasPorFecha = archivadas.reduce((grupos, comida) => {
-            const rango = `Cerrada el ${comida.pivot.fecha_fin || 'fecha desconocida'}`;
-            if (!grupos[rango]) grupos[rango] = [];
-            grupos[rango].push(comida);
-            return grupos;
-        }, {});
+            // 1. Usamos tu hook GET para traer todas las comidas
+            const dataComidas = await useApiGet('/comidas');
+            setComidasCatalogo(dataComidas || []);
+            console.log("Comidas recibidas del catálogo:", dataComidas);
+            
+            // 2. Usamos tu hook GET para traer al paciente específico
+            const resPaciente = await useApiGet(`/pacientes/${id}`);
+            const todasLasComidasPivot = resPaciente?.comidas || [];
+            console.log("Datos recibidos del paciente:", todasLasComidasPivot);
+            
+            // 3. Procesamos los datos
+            setPlanActual(todasLasComidasPivot.filter(c => c.pivot.estado !== 'archivada'));
+            
+            const archivadas = todasLasComidasPivot.filter(c => c.pivot.estado === 'archivada');
+            const agrupadasPorFecha = archivadas.reduce((grupos, comida) => {
+                const rango = `Cerrada el ${comida.pivot.fecha_fin || 'fecha desconocida'}`;
+                if (!grupos[rango]) grupos[rango] = [];
+                grupos[rango].push(comida);
+                return grupos;
+            }, {});
 
-        setHistorialDietas(agrupadasPorFecha);
-    } catch (err) {
-        setError("No se pudieron cargar los datos.");
-    } finally {
-        setCargando(false);
-    }
-};
+            setHistorialDietas(agrupadasPorFecha);
+        } catch (err) {
+            setError("No se pudieron cargar los datos.");
+        } finally {
+            setCargando(false);
+        }
+    };
 
     useEffect(() => { cargarDatos(); }, [id]);
 
     const esEditable = periodoSeleccionado === 'actual';
+
+    // --- 🚨 NUEVO: FILTRADO MEMOIZADO DEL CATÁLOGO DE PLATOS 🚨 ---
+    const comidasFiltradas = useMemo(() => {
+        return comidasCatalogo.filter(comida => 
+            comida?.nombre?.toLowerCase().includes(busquedaPlato.toLowerCase())
+        );
+    }, [comidasCatalogo, busquedaPlato]);
 
     // --- LÓGICA DE ASIGNACIÓN (Click y Drag&Drop) ---
     const Asignar = async (diaSemanaIndex, momentoDia, comidaId) => {
         if (!esEditable) return;
         try {
             setEnviando(true);
-            // Usamos tu hook POST
             await useApiPost(`/pacientes/${id}/asignar-comida`, {
                 comida_id: comidaId,
                 dia_semana: diaSemanaIndex,
@@ -102,7 +108,6 @@ const AsignarPlan = () => {
         if (!esEditable || !window.confirm("¿Quitar plato?")) return;
         try {
             setEnviando(true);
-            // Usamos tu hook DELETE
             await useApiDelete(`/pacientes/${id}/quitar-comida`, {
                 dia_semana: diaSemanaIndex,
                 momento: momentoDia
@@ -115,7 +120,6 @@ const AsignarPlan = () => {
         if (!window.confirm("¿Archivar dieta completa?")) return;
         try {
             setEnviando(true);
-            // Usamos tu hook POST para acciones sin body
             await useApiPost(`/pacientes/${id}/archivar-plan`);
             await cargarDatos();
         } finally { setEnviando(false); }
@@ -126,7 +130,6 @@ const AsignarPlan = () => {
         return fuente.find(p => Number(p.pivot.dia_semana) === idxDia && p.pivot.momento === momento);
     };
 
-    // --- RENDERIZADO ---
     if (cargando) return <Container className="d-flex justify-content-center p-5"><Spinner animation="border" variant="success" /></Container>;
 
     if (error) return <Container className="p-5"><Alert variant="danger">{error}</Alert></Container>;
@@ -178,34 +181,50 @@ const AsignarPlan = () => {
             </div>
 
             <Row className="g-4">
-                {/* PANEL IZQUIERDO: Catálogo */}
+                {/* PANEL IZQUIERDO: Catálogo con Buscador */}
                 <Col lg={3}>
                     <Card className={`border-0 shadow-sm rounded-4 position-sticky ${!esEditable ? 'opacity-50' : ''}`} style={{ top: '30px', maxHeight: '85vh' }}>
                         <Card.Header className="bg-success text-white rounded-top-4 py-3 border-0">
                             <h6 className="mb-0 fw-bold fs-5">🥗 Catálogo Maestro</h6>
                         </Card.Header>
                         <Card.Body className="p-3 d-flex flex-column h-100">
-                            <div className="flex-grow-1 overflow-auto pe-2" style={{ maxHeight: '600px' }}>
-                                {comidasCatalogo.map(comida => (
-                                    <div
-                                        key={comida.id}
-                                        onClick={() => esEditable && setPlatoSeleccionado(comida)}
-                                        draggable={esEditable}
-                                        onDragStart={(e) => DragStart(e, comida.id)}
-                                        className={`p-3 mb-2 bg-white border rounded-3 shadow-sm ${platoSeleccionado?.id === comida.id ? 'border-primary bg-primary bg-opacity-10' : ''}`}
-                                        style={{
-                                            cursor: esEditable ? 'grab' : 'not-allowed',
-                                            transition: 'transform 0.2s',
-                                            borderLeft: esEditable
-                                                ? (platoSeleccionado?.id === comida.id ? '4px solid #0d6efd' : '4px solid #198754')
-                                                : '4px solid #6c757d'
-                                        }}
-                                    >
-                                        <div className="d-flex justify-content-between align-items-start">
-                                            <span className="fw-bold text-dark lh-sm small">{comida.nombre}</span>
+                            {/* 🚨 BUSCADOR DE PLATOS INTEGRADO 🚨 */}
+                            <Form.Control
+                                type="text"
+                                placeholder="🔍 Filtrar platos por nombre..."
+                                value={busquedaPlato}
+                                onChange={(e) => setBusquedaPlato(e.target.value)}
+                                className="mb-3 shadow-sm border-secondary-subtle"
+                                disabled={!esEditable}
+                            />
+                            
+                            <div className="flex-grow-1 overflow-auto pe-2" style={{ maxHeight: '550px' }}>
+                                {comidasFiltradas.length > 0 ? (
+                                    comidasFiltradas.map(comida => (
+                                        <div
+                                            key={comida.id}
+                                            onClick={() => esEditable && setPlatoSeleccionado(comida)}
+                                            draggable={esEditable}
+                                            onDragStart={(e) => DragStart(e, comida.id)}
+                                            className={`p-3 mb-2 bg-white border rounded-3 shadow-sm ${platoSeleccionado?.id === comida.id ? 'border-primary bg-primary bg-opacity-10' : ''}`}
+                                            style={{
+                                                cursor: esEditable ? 'grab' : 'not-allowed',
+                                                transition: 'transform 0.2s',
+                                                borderLeft: esEditable
+                                                    ? (platoSeleccionado?.id === comida.id ? '4px solid #0d6efd' : '4px solid #198754')
+                                                    : '4px solid #6c757d'
+                                            }}
+                                        >
+                                            <div className="d-flex justify-content-between align-items-start">
+                                                <span className="fw-bold text-dark lh-sm small">{comida.nombre}</span>
+                                            </div>
                                         </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center text-muted py-4 small">
+                                        No se encontraron platos.
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </Card.Body>
                     </Card>
