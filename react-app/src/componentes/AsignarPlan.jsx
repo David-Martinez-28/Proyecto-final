@@ -22,11 +22,11 @@ const AsignarPlan = () => {
     // --- ESTADOS DE UI ---
     const [periodoSeleccionado, setPeriodoSeleccionado] = useState('actual');
     const [platoSeleccionado, setPlatoSeleccionado] = useState(null);
-    const [busquedaPlato, setBusquedaPlato] = useState(''); // 👈 NUEVO: Estado para filtrar la barra del catálogo
+    const [busquedaPlato, setBusquedaPlato] = useState(''); 
     const [cargando, setCargando] = useState(true);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState(null);
-
+    const [resPaciente, setResPaciente] = useState(null);
     const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     const momentos = ["desayuno", "almuerzo", "comida", "merienda", "cena"];
 
@@ -39,12 +39,13 @@ const AsignarPlan = () => {
             // 1. Usamos tu hook GET para traer todas las comidas
             const dataComidas = await useApiGet('/comidas');
             setComidasCatalogo(dataComidas || []);
-            console.log("Comidas recibidas del catálogo:", dataComidas);
+            
             
             // 2. Usamos tu hook GET para traer al paciente específico
             const resPaciente = await useApiGet(`/pacientes/${id}`);
+            setResPaciente(resPaciente?.user?.name || `Paciente #${id}`);
             const todasLasComidasPivot = resPaciente?.comidas || [];
-            console.log("Datos recibidos del paciente:", todasLasComidasPivot);
+            
             
             // 3. Procesamos los datos
             setPlanActual(todasLasComidasPivot.filter(c => c.pivot.estado !== 'archivada'));
@@ -64,7 +65,7 @@ const AsignarPlan = () => {
             setCargando(false);
         }
     };
-
+    
     useEffect(() => { cargarDatos(); }, [id]);
 
     const esEditable = periodoSeleccionado === 'actual';
@@ -124,7 +125,7 @@ const AsignarPlan = () => {
             await cargarDatos();
         } finally { setEnviando(false); }
     };
-
+    
     const obtenerPlatoCelda = (idxDia, momento) => {
         const fuente = periodoSeleccionado === 'actual' ? planActual : (historialDietas[periodoSeleccionado] || []);
         return fuente.find(p => Number(p.pivot.dia_semana) === idxDia && p.pivot.momento === momento);
@@ -149,7 +150,7 @@ const AsignarPlan = () => {
                         ← Volver a Mis Pacientes
                     </Button>
                     <h2 className="fw-bold mb-0 text-dark">
-                        Calendario de <span className="text-success">{pacienteBase?.user?.name || `Paciente #${id}`}</span>
+                        Calendario de <span className="text-success">{resPaciente || `Paciente #${id}`}</span>
                     </h2>
                 </div>
 
@@ -188,7 +189,7 @@ const AsignarPlan = () => {
                             <h6 className="mb-0 fw-bold fs-5">🥗 Catálogo Maestro</h6>
                         </Card.Header>
                         <Card.Body className="p-3 d-flex flex-column h-100">
-                            {/* 🚨 BUSCADOR DE PLATOS INTEGRADO 🚨 */}
+                            
                             <Form.Control
                                 type="text"
                                 placeholder="🔍 Filtrar platos por nombre..."
